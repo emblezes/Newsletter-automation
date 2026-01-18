@@ -1,0 +1,455 @@
+{
+  "product": {
+    "name": "VeillePro",
+    "tagline": "Veille réglementaire & affaires publiques",
+    "description": "Ne manquez plus aucune évolution réglementaire impactant votre activité"
+  },
+
+  "jurisdictions": {
+    "france": {
+      "name": "France",
+      "flag": "🇫🇷",
+      "sources": {
+        "official": [
+          {
+            "id": "legifrance",
+            "name": "Légifrance",
+            "type": "rss",
+            "url": "https://www.legifrance.gouv.fr/eli/jo/rss",
+            "description": "Journal Officiel de la République Française",
+            "category": "lois_decrets",
+            "priority": "high"
+          },
+          {
+            "id": "senat",
+            "name": "Sénat",
+            "type": "rss",
+            "url": "https://www.senat.fr/rss/travaux.rss",
+            "description": "Travaux parlementaires du Sénat",
+            "category": "parlementaire",
+            "priority": "medium"
+          },
+          {
+            "id": "assemblee",
+            "name": "Assemblée Nationale",
+            "type": "rss",
+            "url": "https://www2.assemblee-nationale.fr/rss/liste/travaux",
+            "description": "Travaux de l'Assemblée Nationale",
+            "category": "parlementaire",
+            "priority": "medium"
+          },
+          {
+            "id": "gouvernement",
+            "name": "Gouvernement.fr",
+            "type": "rss",
+            "url": "https://www.gouvernement.fr/feed",
+            "description": "Actualités du Gouvernement",
+            "category": "gouvernement",
+            "priority": "high"
+          }
+        ],
+        "regulators": [
+          {
+            "id": "amf",
+            "name": "AMF",
+            "type": "rss",
+            "url": "https://www.amf-france.org/fr/rss",
+            "description": "Autorité des Marchés Financiers",
+            "sectors": ["finance", "banque", "assurance"],
+            "priority": "high"
+          },
+          {
+            "id": "acpr",
+            "name": "ACPR",
+            "type": "api",
+            "url": "https://acpr.banque-france.fr",
+            "description": "Autorité de Contrôle Prudentiel et de Résolution",
+            "sectors": ["banque", "assurance"],
+            "priority": "high"
+          },
+          {
+            "id": "cnil",
+            "name": "CNIL",
+            "type": "rss",
+            "url": "https://www.cnil.fr/fr/rss.xml",
+            "description": "Commission Nationale Informatique et Libertés",
+            "sectors": ["tech", "data", "all"],
+            "priority": "high"
+          },
+          {
+            "id": "arcep",
+            "name": "ARCEP",
+            "type": "rss",
+            "url": "https://www.arcep.fr/rss.html",
+            "description": "Autorité de Régulation des Communications",
+            "sectors": ["telecom", "tech"],
+            "priority": "medium"
+          },
+          {
+            "id": "ansm",
+            "name": "ANSM",
+            "type": "rss",
+            "url": "https://ansm.sante.fr/rss",
+            "description": "Agence Nationale Sécurité Médicament",
+            "sectors": ["sante", "pharma"],
+            "priority": "high"
+          },
+          {
+            "id": "has",
+            "name": "HAS",
+            "type": "rss",
+            "url": "https://www.has-sante.fr/jcms/fc_2875208/fr/rss",
+            "description": "Haute Autorité de Santé",
+            "sectors": ["sante"],
+            "priority": "medium"
+          },
+          {
+            "id": "autorite-concurrence",
+            "name": "Autorité de la Concurrence",
+            "type": "rss",
+            "url": "https://www.autoritedelaconcurrence.fr/fr/feed",
+            "description": "Décisions et avis concurrence",
+            "sectors": ["all"],
+            "priority": "medium"
+          },
+          {
+            "id": "dgccrf",
+            "name": "DGCCRF",
+            "type": "rss",
+            "url": "https://www.economie.gouv.fr/dgccrf/rss",
+            "description": "Protection des consommateurs",
+            "sectors": ["commerce", "retail", "all"],
+            "priority": "medium"
+          }
+        ]
+      }
+    },
+    "europe": {
+      "name": "Union Européenne",
+      "flag": "🇪🇺",
+      "sources": {
+        "official": [
+          {
+            "id": "eur-lex",
+            "name": "EUR-Lex",
+            "type": "rss",
+            "url": "https://eur-lex.europa.eu/content/news/daily-overview.html?rss=true",
+            "description": "Journal Officiel de l'UE",
+            "category": "legislation_eu",
+            "priority": "high"
+          },
+          {
+            "id": "commission-eu",
+            "name": "Commission Européenne",
+            "type": "rss",
+            "url": "https://ec.europa.eu/commission/presscorner/api/rss",
+            "description": "Communiqués de la Commission",
+            "category": "commission",
+            "priority": "high"
+          },
+          {
+            "id": "parlement-eu",
+            "name": "Parlement Européen",
+            "type": "rss",
+            "url": "https://www.europarl.europa.eu/rss/doc/top-stories/en.xml",
+            "description": "Actualités du Parlement",
+            "category": "parlementaire_eu",
+            "priority": "medium"
+          },
+          {
+            "id": "conseil-eu",
+            "name": "Conseil de l'UE",
+            "type": "rss",
+            "url": "https://www.consilium.europa.eu/en/rss/",
+            "description": "Conseil de l'Union Européenne",
+            "category": "conseil",
+            "priority": "medium"
+          }
+        ],
+        "regulators": [
+          {
+            "id": "eba",
+            "name": "EBA",
+            "type": "rss",
+            "url": "https://www.eba.europa.eu/rss",
+            "description": "European Banking Authority",
+            "sectors": ["banque", "finance"],
+            "priority": "high"
+          },
+          {
+            "id": "esma",
+            "name": "ESMA",
+            "type": "rss",
+            "url": "https://www.esma.europa.eu/rss",
+            "description": "European Securities and Markets Authority",
+            "sectors": ["finance", "marches"],
+            "priority": "high"
+          },
+          {
+            "id": "eiopa",
+            "name": "EIOPA",
+            "type": "rss",
+            "url": "https://www.eiopa.europa.eu/rss",
+            "description": "European Insurance Authority",
+            "sectors": ["assurance"],
+            "priority": "high"
+          },
+          {
+            "id": "ema",
+            "name": "EMA",
+            "type": "rss",
+            "url": "https://www.ema.europa.eu/en/rss",
+            "description": "European Medicines Agency",
+            "sectors": ["pharma", "sante"],
+            "priority": "high"
+          },
+          {
+            "id": "edpb",
+            "name": "EDPB",
+            "type": "rss",
+            "url": "https://edpb.europa.eu/rss_en",
+            "description": "European Data Protection Board",
+            "sectors": ["tech", "data"],
+            "priority": "high"
+          }
+        ]
+      }
+    }
+  },
+
+  "sectors": {
+    "banque_finance": {
+      "name": "Banque & Finance",
+      "icon": "🏦",
+      "color": "#0F766E",
+      "keywords": [
+        "bancaire", "banque", "établissement de crédit", "fonds propres",
+        "ratio de solvabilité", "Bâle III", "Bâle IV", "CRD", "CRR",
+        "blanchiment", "LCB-FT", "ACPR", "AMF", "MIFID", "DORA",
+        "paiement", "DSP2", "DSP3", "monnaie électronique"
+      ],
+      "sources_priority": ["amf", "acpr", "eba", "esma"],
+      "alert_keywords": ["sanction", "amende", "agrément", "retrait"]
+    },
+    "assurance": {
+      "name": "Assurance",
+      "icon": "🛡️",
+      "color": "#7C3AED",
+      "keywords": [
+        "assurance", "réassurance", "Solvabilité II", "EIOPA",
+        "prime", "sinistre", "actuariat", "provision technique",
+        "distribution assurance", "DDA", "ACPR"
+      ],
+      "sources_priority": ["acpr", "eiopa"],
+      "alert_keywords": ["agrément", "sanction", "contrôle"]
+    },
+    "sante_pharma": {
+      "name": "Santé & Pharma",
+      "icon": "💊",
+      "color": "#DC2626",
+      "keywords": [
+        "médicament", "AMM", "autorisation mise marché", "ANSM",
+        "dispositif médical", "essai clinique", "pharmacovigilance",
+        "remboursement", "prix", "HAS", "CEPS", "biosimilaire",
+        "thérapie génique", "EMA", "FDA"
+      ],
+      "sources_priority": ["ansm", "has", "ema"],
+      "alert_keywords": ["retrait", "suspension", "alerte", "rappel"]
+    },
+    "tech_data": {
+      "name": "Tech & Données",
+      "icon": "💻",
+      "color": "#2563EB",
+      "keywords": [
+        "RGPD", "données personnelles", "CNIL", "DPO",
+        "intelligence artificielle", "IA Act", "algorithme",
+        "cybersécurité", "NIS2", "DORA", "cloud", "hébergement",
+        "DSA", "DMA", "plateforme", "GAFAM"
+      ],
+      "sources_priority": ["cnil", "edpb", "arcep"],
+      "alert_keywords": ["amende", "mise en demeure", "sanction"]
+    },
+    "energie_environnement": {
+      "name": "Énergie & Environnement",
+      "icon": "⚡",
+      "color": "#16A34A",
+      "keywords": [
+        "transition énergétique", "renouvelable", "carbone",
+        "taxonomie", "CSRD", "ESG", "climat", "biodiversité",
+        "ICPE", "autorisation environnementale", "REP",
+        "économie circulaire", "déchets", "pollution"
+      ],
+      "sources_priority": ["gouvernement"],
+      "alert_keywords": ["interdiction", "obligation", "taxe"]
+    },
+    "immobilier_construction": {
+      "name": "Immobilier & Construction",
+      "icon": "🏗️",
+      "color": "#EA580C",
+      "keywords": [
+        "urbanisme", "PLU", "permis construire", "logement",
+        "bail", "copropriété", "diagnostic", "DPE", "RE2020",
+        "rénovation énergétique", "Pinel", "investissement locatif"
+      ],
+      "sources_priority": ["legifrance", "gouvernement"],
+      "alert_keywords": ["obligation", "interdiction", "délai"]
+    },
+    "transport_mobilite": {
+      "name": "Transport & Mobilité",
+      "icon": "🚗",
+      "color": "#0891B2",
+      "keywords": [
+        "transport", "mobilité", "véhicule électrique", "ZFE",
+        "homologation", "émissions", "logistique", "fret",
+        "aviation", "maritime", "ferroviaire"
+      ],
+      "sources_priority": ["gouvernement"],
+      "alert_keywords": ["interdiction", "norme", "obligation"]
+    },
+    "travail_social": {
+      "name": "Droit Social & Travail",
+      "icon": "👥",
+      "color": "#DB2777",
+      "keywords": [
+        "code travail", "contrat", "licenciement", "CSE",
+        "négociation collective", "convention collective",
+        "télétravail", "temps travail", "salaire", "SMIC",
+        "formation professionnelle", "retraite", "URSSAF"
+      ],
+      "sources_priority": ["legifrance", "gouvernement"],
+      "alert_keywords": ["obligation", "sanction", "contrôle"]
+    },
+    "commerce_consommation": {
+      "name": "Commerce & Consommation",
+      "icon": "🛒",
+      "color": "#9333EA",
+      "keywords": [
+        "consommateur", "DGCCRF", "pratiques commerciales",
+        "garantie", "affichage prix", "soldes", "promotions",
+        "e-commerce", "démarchage", "rétractation"
+      ],
+      "sources_priority": ["dgccrf", "autorite-concurrence"],
+      "alert_keywords": ["sanction", "rappel", "interdiction"]
+    }
+  },
+
+  "document_types": {
+    "loi": {
+      "name": "Loi",
+      "icon": "📜",
+      "priority": "critical",
+      "description": "Texte voté par le Parlement"
+    },
+    "decret": {
+      "name": "Décret",
+      "icon": "📋",
+      "priority": "high",
+      "description": "Texte d'application d'une loi"
+    },
+    "arrete": {
+      "name": "Arrêté",
+      "icon": "📄",
+      "priority": "medium",
+      "description": "Décision administrative"
+    },
+    "ordonnance": {
+      "name": "Ordonnance",
+      "icon": "⚖️",
+      "priority": "critical",
+      "description": "Texte pris par le Gouvernement"
+    },
+    "reglement_eu": {
+      "name": "Règlement UE",
+      "icon": "🇪🇺",
+      "priority": "critical",
+      "description": "Directement applicable dans tous les États"
+    },
+    "directive_eu": {
+      "name": "Directive UE",
+      "icon": "🇪🇺",
+      "priority": "high",
+      "description": "À transposer en droit national"
+    },
+    "decision": {
+      "name": "Décision",
+      "icon": "🔨",
+      "priority": "medium",
+      "description": "Décision d'autorité réglementaire"
+    },
+    "consultation": {
+      "name": "Consultation",
+      "icon": "💬",
+      "priority": "medium",
+      "description": "Consultation publique en cours"
+    },
+    "recommandation": {
+      "name": "Recommandation",
+      "icon": "💡",
+      "priority": "low",
+      "description": "Recommandation non contraignante"
+    },
+    "projet_loi": {
+      "name": "Projet de loi",
+      "icon": "📝",
+      "priority": "high",
+      "description": "Texte en cours d'examen"
+    },
+    "proposition_loi": {
+      "name": "Proposition de loi",
+      "icon": "📝",
+      "priority": "medium",
+      "description": "Initiative parlementaire"
+    }
+  },
+
+  "urgency_levels": {
+    "critical": {
+      "name": "Critique",
+      "icon": "🔴",
+      "color": "#DC2626",
+      "description": "Action immédiate requise",
+      "triggers": ["entrée en vigueur < 30 jours", "sanction", "interdiction immédiate"],
+      "notification": "immediate"
+    },
+    "high": {
+      "name": "Important",
+      "icon": "🟠",
+      "color": "#EA580C",
+      "description": "À traiter rapidement",
+      "triggers": ["nouveau texte applicable", "modification majeure", "délai < 6 mois"],
+      "notification": "daily"
+    },
+    "medium": {
+      "name": "Standard",
+      "icon": "🟡",
+      "color": "#CA8A04",
+      "description": "À suivre",
+      "triggers": ["consultation en cours", "projet de loi", "évolution à venir"],
+      "notification": "daily"
+    },
+    "low": {
+      "name": "Information",
+      "icon": "🟢",
+      "color": "#16A34A",
+      "description": "Pour information",
+      "triggers": ["recommandation", "guide", "rapport"],
+      "notification": "weekly"
+    }
+  },
+
+  "alert_rules": {
+    "immediate_alerts": [
+      "Loi promulguée avec entrée en vigueur immédiate",
+      "Sanction ou amende prononcée",
+      "Retrait d'agrément ou d'autorisation",
+      "Rappel de produit",
+      "Alerte sanitaire"
+    ],
+    "daily_digest_priority": [
+      "Nouveau décret d'application",
+      "Règlement UE publié",
+      "Décision d'autorité réglementaire",
+      "Consultation publique ouverte"
+    ]
+  }
+}
