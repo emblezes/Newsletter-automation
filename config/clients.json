@@ -1,0 +1,330 @@
+{
+  "settings": {
+    "defaultScheduleHour": 7,
+    "defaultScheduleMinute": 0,
+    "maxArticlesPerClient": 15,
+    "enableParallelProcessing": true,
+    "retryOnFailure": true,
+    "maxRetries": 3
+  },
+  "clients": [
+    {
+      "id": "client-001",
+      "name": "TechVentures Inc",
+      "active": true,
+      "industry": "Technology",
+      "branding": {
+        "companyName": "TechVentures Inc",
+        "newsletterTitle": "Tech Ventures Daily",
+        "logoUrl": "",
+        "primaryColor": "#667eea",
+        "secondaryColor": "#764ba2"
+      },
+      "sources": {
+        "keywords": "artificial intelligence, machine learning, cloud computing, SaaS, startups",
+        "rssFeeds": [
+          "https://feeds.feedburner.com/TechCrunch/",
+          "https://www.theverge.com/rss/index.xml",
+          "https://feeds.arstechnica.com/arstechnica/technology-lab"
+        ],
+        "excludeKeywords": ["sponsored", "advertisement"]
+      },
+      "categories": {
+        "AI & Machine Learning": { "icon": "🤖", "color": "#8B5CF6", "keywords": ["ai", "artificial intelligence", "machine learning", "deep learning", "gpt", "llm"] },
+        "Cloud & SaaS": { "icon": "☁️", "color": "#0EA5E9", "keywords": ["cloud", "aws", "azure", "saas", "kubernetes"] },
+        "Startups": { "icon": "🚀", "color": "#F59E0B", "keywords": ["startup", "funding", "venture", "series"] },
+        "Development": { "icon": "💻", "color": "#10B981", "keywords": ["developer", "programming", "software", "code"] }
+      },
+      "delivery": {
+        "email": {
+          "enabled": true,
+          "recipients": ["team@techventures.com", "leadership@techventures.com"],
+          "sendTime": { "hour": 7, "minute": 30 }
+        },
+        "telegram": {
+          "enabled": true,
+          "chatId": "-1001234567001",
+          "sendTime": { "hour": 7, "minute": 30 }
+        }
+      },
+      "preferences": {
+        "language": "en",
+        "timezone": "America/New_York",
+        "maxArticles": 12,
+        "includeImages": true,
+        "aiSummaries": true
+      }
+    },
+    {
+      "id": "client-002",
+      "name": "FinanceFirst Bank",
+      "active": true,
+      "industry": "Finance & Banking",
+      "branding": {
+        "companyName": "FinanceFirst Bank",
+        "newsletterTitle": "FinanceFirst Morning Brief",
+        "logoUrl": "",
+        "primaryColor": "#0F766E",
+        "secondaryColor": "#134E4A"
+      },
+      "sources": {
+        "keywords": "fintech, banking, cryptocurrency, stock market, investment, financial services, blockchain",
+        "rssFeeds": [
+          "https://www.ft.com/rss/home",
+          "https://feeds.bloomberg.com/markets/news.rss",
+          "https://www.coindesk.com/arc/outboundfeeds/rss/"
+        ],
+        "excludeKeywords": ["sponsored"]
+      },
+      "categories": {
+        "Fintech": { "icon": "💳", "color": "#8B5CF6", "keywords": ["fintech", "payment", "neobank", "digital banking"] },
+        "Crypto & Blockchain": { "icon": "₿", "color": "#F59E0B", "keywords": ["crypto", "bitcoin", "ethereum", "blockchain", "defi"] },
+        "Markets": { "icon": "📈", "color": "#10B981", "keywords": ["stock", "market", "trading", "investment", "earnings"] },
+        "Regulation": { "icon": "⚖️", "color": "#EF4444", "keywords": ["regulation", "sec", "fed", "compliance", "policy"] }
+      },
+      "delivery": {
+        "email": {
+          "enabled": true,
+          "recipients": ["research@financefirst.com", "trading@financefirst.com"],
+          "sendTime": { "hour": 6, "minute": 0 }
+        },
+        "telegram": {
+          "enabled": true,
+          "chatId": "-1001234567002",
+          "sendTime": { "hour": 6, "minute": 0 }
+        }
+      },
+      "preferences": {
+        "language": "en",
+        "timezone": "America/New_York",
+        "maxArticles": 15,
+        "includeImages": false,
+        "aiSummaries": true
+      }
+    },
+    {
+      "id": "client-003",
+      "name": "MedTech Solutions",
+      "active": true,
+      "industry": "Healthcare & Pharma",
+      "branding": {
+        "companyName": "MedTech Solutions",
+        "newsletterTitle": "Healthcare Innovation Daily",
+        "logoUrl": "",
+        "primaryColor": "#DC2626",
+        "secondaryColor": "#991B1B"
+      },
+      "sources": {
+        "keywords": "healthcare, pharmaceutical, biotech, medical devices, digital health, FDA, clinical trials",
+        "rssFeeds": [
+          "https://www.fiercehealthcare.com/rss/xml",
+          "https://www.fiercepharma.com/rss/xml"
+        ],
+        "excludeKeywords": ["sponsored", "webinar"]
+      },
+      "categories": {
+        "Pharma & Biotech": { "icon": "💊", "color": "#DC2626", "keywords": ["pharma", "biotech", "drug", "fda", "clinical trial"] },
+        "Digital Health": { "icon": "📱", "color": "#0EA5E9", "keywords": ["digital health", "telemedicine", "health tech", "wearable"] },
+        "Medical Devices": { "icon": "🔬", "color": "#8B5CF6", "keywords": ["medical device", "diagnostic", "imaging"] },
+        "Healthcare Business": { "icon": "🏥", "color": "#10B981", "keywords": ["hospital", "insurance", "medicare", "healthcare system"] }
+      },
+      "delivery": {
+        "email": {
+          "enabled": true,
+          "recipients": ["research@medtech.com", "strategy@medtech.com"],
+          "sendTime": { "hour": 8, "minute": 0 }
+        },
+        "telegram": {
+          "enabled": false,
+          "chatId": "",
+          "sendTime": { "hour": 8, "minute": 0 }
+        }
+      },
+      "preferences": {
+        "language": "en",
+        "timezone": "America/Chicago",
+        "maxArticles": 10,
+        "includeImages": true,
+        "aiSummaries": true
+      }
+    },
+    {
+      "id": "client-004",
+      "name": "EcoEnergy Corp",
+      "active": true,
+      "industry": "Energy & Sustainability",
+      "branding": {
+        "companyName": "EcoEnergy Corp",
+        "newsletterTitle": "Green Energy Digest",
+        "logoUrl": "",
+        "primaryColor": "#16A34A",
+        "secondaryColor": "#15803D"
+      },
+      "sources": {
+        "keywords": "renewable energy, solar, wind, electric vehicles, sustainability, clean tech, carbon",
+        "rssFeeds": [
+          "https://cleantechnica.com/feed/"
+        ],
+        "excludeKeywords": ["sponsored"]
+      },
+      "categories": {
+        "Solar & Wind": { "icon": "☀️", "color": "#F59E0B", "keywords": ["solar", "wind", "renewable", "photovoltaic"] },
+        "Electric Vehicles": { "icon": "🚗", "color": "#0EA5E9", "keywords": ["ev", "electric vehicle", "tesla", "charging", "battery"] },
+        "Policy & Carbon": { "icon": "🌍", "color": "#16A34A", "keywords": ["carbon", "climate", "policy", "emission", "net zero"] },
+        "Energy Storage": { "icon": "🔋", "color": "#8B5CF6", "keywords": ["battery", "storage", "grid", "lithium"] }
+      },
+      "delivery": {
+        "email": {
+          "enabled": true,
+          "recipients": ["strategy@ecoenergy.com"],
+          "sendTime": { "hour": 7, "minute": 0 }
+        },
+        "telegram": {
+          "enabled": true,
+          "chatId": "-1001234567004",
+          "sendTime": { "hour": 7, "minute": 0 }
+        }
+      },
+      "preferences": {
+        "language": "en",
+        "timezone": "Europe/London",
+        "maxArticles": 10,
+        "includeImages": true,
+        "aiSummaries": true
+      }
+    },
+    {
+      "id": "client-005",
+      "name": "RetailMax Group",
+      "active": true,
+      "industry": "E-commerce & Retail",
+      "branding": {
+        "companyName": "RetailMax Group",
+        "newsletterTitle": "Retail & E-commerce Pulse",
+        "logoUrl": "",
+        "primaryColor": "#7C3AED",
+        "secondaryColor": "#6D28D9"
+      },
+      "sources": {
+        "keywords": "e-commerce, retail technology, online shopping, supply chain, logistics, Amazon, Shopify",
+        "rssFeeds": [
+          "https://www.retaildive.com/feeds/news/"
+        ],
+        "excludeKeywords": ["sponsored"]
+      },
+      "categories": {
+        "E-commerce": { "icon": "🛒", "color": "#7C3AED", "keywords": ["ecommerce", "e-commerce", "online", "marketplace", "shopify"] },
+        "Supply Chain": { "icon": "📦", "color": "#F59E0B", "keywords": ["supply chain", "logistics", "shipping", "warehouse", "fulfillment"] },
+        "Retail Tech": { "icon": "🏪", "color": "#0EA5E9", "keywords": ["retail tech", "pos", "inventory", "omnichannel"] },
+        "Consumer Trends": { "icon": "👥", "color": "#EC4899", "keywords": ["consumer", "shopping", "trend", "behavior"] }
+      },
+      "delivery": {
+        "email": {
+          "enabled": true,
+          "recipients": ["insights@retailmax.com", "operations@retailmax.com"],
+          "sendTime": { "hour": 9, "minute": 0 }
+        },
+        "telegram": {
+          "enabled": false,
+          "chatId": "",
+          "sendTime": { "hour": 9, "minute": 0 }
+        }
+      },
+      "preferences": {
+        "language": "en",
+        "timezone": "America/Los_Angeles",
+        "maxArticles": 12,
+        "includeImages": true,
+        "aiSummaries": true
+      }
+    },
+    {
+      "id": "client-006",
+      "name": "Agence Marketing Plus",
+      "active": true,
+      "industry": "Marketing & AdTech",
+      "branding": {
+        "companyName": "Agence Marketing Plus",
+        "newsletterTitle": "Marketing & AdTech Hebdo",
+        "logoUrl": "",
+        "primaryColor": "#E11D48",
+        "secondaryColor": "#BE123C"
+      },
+      "sources": {
+        "keywords": "digital marketing, advertising technology, social media marketing, SEO, content marketing, programmatic",
+        "rssFeeds": [
+          "https://feeds.feedburner.com/Mashable",
+          "https://www.adweek.com/feed/"
+        ],
+        "excludeKeywords": ["sponsored"]
+      },
+      "categories": {
+        "Social Media": { "icon": "📱", "color": "#0EA5E9", "keywords": ["social media", "instagram", "tiktok", "facebook", "linkedin"] },
+        "AdTech": { "icon": "📺", "color": "#E11D48", "keywords": ["adtech", "programmatic", "advertising", "google ads", "meta ads"] },
+        "SEO & Content": { "icon": "🔍", "color": "#16A34A", "keywords": ["seo", "content", "search", "google", "organic"] },
+        "Analytics": { "icon": "📊", "color": "#8B5CF6", "keywords": ["analytics", "data", "attribution", "measurement"] }
+      },
+      "delivery": {
+        "email": {
+          "enabled": true,
+          "recipients": ["equipe@marketingplus.fr"],
+          "sendTime": { "hour": 8, "minute": 30 }
+        },
+        "telegram": {
+          "enabled": true,
+          "chatId": "-1001234567006",
+          "sendTime": { "hour": 8, "minute": 30 }
+        }
+      },
+      "preferences": {
+        "language": "fr",
+        "timezone": "Europe/Paris",
+        "maxArticles": 10,
+        "includeImages": true,
+        "aiSummaries": true
+      }
+    }
+  ],
+  "templates": {
+    "newClient": {
+      "id": "client-XXX",
+      "name": "Client Name",
+      "active": true,
+      "industry": "Industry Name",
+      "branding": {
+        "companyName": "Company Name",
+        "newsletterTitle": "Newsletter Title",
+        "logoUrl": "",
+        "primaryColor": "#667eea",
+        "secondaryColor": "#764ba2"
+      },
+      "sources": {
+        "keywords": "keyword1, keyword2, keyword3",
+        "rssFeeds": [],
+        "excludeKeywords": ["sponsored"]
+      },
+      "categories": {
+        "Category 1": { "icon": "📰", "color": "#8B5CF6", "keywords": ["keyword"] }
+      },
+      "delivery": {
+        "email": {
+          "enabled": true,
+          "recipients": ["email@company.com"],
+          "sendTime": { "hour": 7, "minute": 0 }
+        },
+        "telegram": {
+          "enabled": false,
+          "chatId": "",
+          "sendTime": { "hour": 7, "minute": 0 }
+        }
+      },
+      "preferences": {
+        "language": "en",
+        "timezone": "UTC",
+        "maxArticles": 10,
+        "includeImages": true,
+        "aiSummaries": true
+      }
+    }
+  }
+}

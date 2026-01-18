@@ -1,0 +1,619 @@
+{
+  "name": "Multi-Client Newsletter Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Morning Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "notes": "Triggers early morning to process all clients"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Multi-Client Configuration\n// In production, load from external file, database, or N8N credentials\n\nconst clientsConfig = {\n  settings: {\n    maxArticlesPerClient: 15,\n    enableParallelProcessing: true\n  },\n  clients: [\n    {\n      id: 'client-001',\n      name: 'TechVentures Inc',\n      active: true,\n      industry: 'Technology',\n      branding: {\n        companyName: 'TechVentures Inc',\n        newsletterTitle: 'Tech Ventures Daily',\n        primaryColor: '#667eea',\n        secondaryColor: '#764ba2'\n      },\n      sources: {\n        keywords: 'artificial intelligence, machine learning, cloud computing, SaaS, startups',\n        rssFeeds: 'https://feeds.feedburner.com/TechCrunch/',\n        excludeKeywords: ['sponsored', 'advertisement']\n      },\n      categories: {\n        'AI & Machine Learning': { icon: '🤖', color: '#8B5CF6', keywords: ['ai', 'artificial intelligence', 'machine learning', 'deep learning', 'gpt', 'llm'] },\n        'Cloud & SaaS': { icon: '☁️', color: '#0EA5E9', keywords: ['cloud', 'aws', 'azure', 'saas', 'kubernetes'] },\n        'Startups': { icon: '🚀', color: '#F59E0B', keywords: ['startup', 'funding', 'venture', 'series'] },\n        'Development': { icon: '💻', color: '#10B981', keywords: ['developer', 'programming', 'software', 'code'] },\n        'Other': { icon: '📰', color: '#6B7280', keywords: [] }\n      },\n      delivery: {\n        email: { enabled: true, recipients: $env.CLIENT_001_EMAILS || 'team@techventures.com' },\n        telegram: { enabled: true, chatId: $env.CLIENT_001_TELEGRAM || '' }\n      },\n      preferences: { maxArticles: 12, aiSummaries: true }\n    },\n    {\n      id: 'client-002',\n      name: 'FinanceFirst Bank',\n      active: true,\n      industry: 'Finance & Banking',\n      branding: {\n        companyName: 'FinanceFirst Bank',\n        newsletterTitle: 'FinanceFirst Morning Brief',\n        primaryColor: '#0F766E',\n        secondaryColor: '#134E4A'\n      },\n      sources: {\n        keywords: 'fintech, banking, cryptocurrency, stock market, investment, blockchain',\n        rssFeeds: 'https://www.coindesk.com/arc/outboundfeeds/rss/',\n        excludeKeywords: ['sponsored']\n      },\n      categories: {\n        'Fintech': { icon: '💳', color: '#8B5CF6', keywords: ['fintech', 'payment', 'neobank', 'digital banking'] },\n        'Crypto & Blockchain': { icon: '₿', color: '#F59E0B', keywords: ['crypto', 'bitcoin', 'ethereum', 'blockchain', 'defi'] },\n        'Markets': { icon: '📈', color: '#10B981', keywords: ['stock', 'market', 'trading', 'investment', 'earnings'] },\n        'Regulation': { icon: '⚖️', color: '#EF4444', keywords: ['regulation', 'sec', 'fed', 'compliance', 'policy'] },\n        'Other': { icon: '📰', color: '#6B7280', keywords: [] }\n      },\n      delivery: {\n        email: { enabled: true, recipients: $env.CLIENT_002_EMAILS || 'research@financefirst.com' },\n        telegram: { enabled: true, chatId: $env.CLIENT_002_TELEGRAM || '' }\n      },\n      preferences: { maxArticles: 15, aiSummaries: true }\n    },\n    {\n      id: 'client-003',\n      name: 'MedTech Solutions',\n      active: true,\n      industry: 'Healthcare & Pharma',\n      branding: {\n        companyName: 'MedTech Solutions',\n        newsletterTitle: 'Healthcare Innovation Daily',\n        primaryColor: '#DC2626',\n        secondaryColor: '#991B1B'\n      },\n      sources: {\n        keywords: 'healthcare, pharmaceutical, biotech, medical devices, digital health, FDA',\n        rssFeeds: 'https://www.fiercehealthcare.com/rss/xml',\n        excludeKeywords: ['sponsored', 'webinar']\n      },\n      categories: {\n        'Pharma & Biotech': { icon: '💊', color: '#DC2626', keywords: ['pharma', 'biotech', 'drug', 'fda', 'clinical trial'] },\n        'Digital Health': { icon: '📱', color: '#0EA5E9', keywords: ['digital health', 'telemedicine', 'health tech', 'wearable'] },\n        'Medical Devices': { icon: '🔬', color: '#8B5CF6', keywords: ['medical device', 'diagnostic', 'imaging'] },\n        'Healthcare Business': { icon: '🏥', color: '#10B981', keywords: ['hospital', 'insurance', 'medicare', 'healthcare system'] },\n        'Other': { icon: '📰', color: '#6B7280', keywords: [] }\n      },\n      delivery: {\n        email: { enabled: true, recipients: $env.CLIENT_003_EMAILS || 'research@medtech.com' },\n        telegram: { enabled: false, chatId: '' }\n      },\n      preferences: { maxArticles: 10, aiSummaries: true }\n    },\n    {\n      id: 'client-004',\n      name: 'EcoEnergy Corp',\n      active: true,\n      industry: 'Energy & Sustainability',\n      branding: {\n        companyName: 'EcoEnergy Corp',\n        newsletterTitle: 'Green Energy Digest',\n        primaryColor: '#16A34A',\n        secondaryColor: '#15803D'\n      },\n      sources: {\n        keywords: 'renewable energy, solar, wind, electric vehicles, sustainability, clean tech',\n        rssFeeds: 'https://cleantechnica.com/feed/',\n        excludeKeywords: ['sponsored']\n      },\n      categories: {\n        'Solar & Wind': { icon: '☀️', color: '#F59E0B', keywords: ['solar', 'wind', 'renewable', 'photovoltaic'] },\n        'Electric Vehicles': { icon: '🚗', color: '#0EA5E9', keywords: ['ev', 'electric vehicle', 'tesla', 'charging', 'battery'] },\n        'Policy & Carbon': { icon: '🌍', color: '#16A34A', keywords: ['carbon', 'climate', 'policy', 'emission', 'net zero'] },\n        'Energy Storage': { icon: '🔋', color: '#8B5CF6', keywords: ['battery', 'storage', 'grid', 'lithium'] },\n        'Other': { icon: '📰', color: '#6B7280', keywords: [] }\n      },\n      delivery: {\n        email: { enabled: true, recipients: $env.CLIENT_004_EMAILS || 'strategy@ecoenergy.com' },\n        telegram: { enabled: true, chatId: $env.CLIENT_004_TELEGRAM || '' }\n      },\n      preferences: { maxArticles: 10, aiSummaries: true }\n    },\n    {\n      id: 'client-005',\n      name: 'RetailMax Group',\n      active: true,\n      industry: 'E-commerce & Retail',\n      branding: {\n        companyName: 'RetailMax Group',\n        newsletterTitle: 'Retail & E-commerce Pulse',\n        primaryColor: '#7C3AED',\n        secondaryColor: '#6D28D9'\n      },\n      sources: {\n        keywords: 'e-commerce, retail technology, online shopping, supply chain, logistics, Amazon, Shopify',\n        rssFeeds: 'https://www.retaildive.com/feeds/news/',\n        excludeKeywords: ['sponsored']\n      },\n      categories: {\n        'E-commerce': { icon: '🛒', color: '#7C3AED', keywords: ['ecommerce', 'e-commerce', 'online', 'marketplace', 'shopify'] },\n        'Supply Chain': { icon: '📦', color: '#F59E0B', keywords: ['supply chain', 'logistics', 'shipping', 'warehouse', 'fulfillment'] },\n        'Retail Tech': { icon: '🏪', color: '#0EA5E9', keywords: ['retail tech', 'pos', 'inventory', 'omnichannel'] },\n        'Consumer Trends': { icon: '👥', color: '#EC4899', keywords: ['consumer', 'shopping', 'trend', 'behavior'] },\n        'Other': { icon: '📰', color: '#6B7280', keywords: [] }\n      },\n      delivery: {\n        email: { enabled: true, recipients: $env.CLIENT_005_EMAILS || 'insights@retailmax.com' },\n        telegram: { enabled: false, chatId: '' }\n      },\n      preferences: { maxArticles: 12, aiSummaries: true }\n    }\n  ]\n};\n\n// Filter only active clients\nconst activeClients = clientsConfig.clients.filter(c => c.active);\n\n// Return each client as a separate item for the loop\nreturn activeClients.map(client => ({ json: { client, settings: clientsConfig.settings } }));"
+      },
+      "id": "load-clients",
+      "name": "Load All Clients",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "notes": "Loads all active client configurations"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "loop-clients",
+      "name": "Loop Over Clients",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [440, 0],
+      "notes": "Processes each client one by one"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://newsapi.org/v2/everything",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.client.sources.keywords }}"
+            },
+            {
+              "name": "from",
+              "value": "={{ $today.minus({days: 1}).toISODate() }}"
+            },
+            {
+              "name": "sortBy",
+              "value": "relevancy"
+            },
+            {
+              "name": "pageSize",
+              "value": "={{ $json.client.preferences.maxArticles || 15 }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "fetch-news-api",
+      "name": "Fetch News API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, -100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "newsapi-credentials",
+          "name": "NewsAPI Credentials"
+        }
+      },
+      "notes": "Fetches news for current client's industry"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.client.sources.rssFeeds }}",
+        "options": {}
+      },
+      "id": "fetch-rss",
+      "name": "Fetch RSS Feeds",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [880, 100],
+      "notes": "Fetches RSS content for current client"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Store client config for later use\nconst clientData = $('Loop Over Clients').first().json;\nreturn [{ json: clientData }];"
+      },
+      "id": "store-client",
+      "name": "Store Client Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "notes": "Preserves client config through the pipeline"
+    },
+    {
+      "parameters": {
+        "jsCode": "const clientData = $('Store Client Config').first().json;\nconst client = clientData.client;\n\n// Get data from both sources\nconst newsApiResult = $('Fetch News API').first().json;\nconst rssItems = $('Fetch RSS Feeds').all().map(item => item.json);\n\nconst newsApiData = newsApiResult?.articles || [];\nconst excludeKeywords = client.sources.excludeKeywords || [];\n\n// Normalize news items\nconst allNews = [];\n\n// Process NewsAPI articles\nnewsApiData.forEach(article => {\n  // Check for excluded keywords\n  const text = (article.title + ' ' + (article.description || '')).toLowerCase();\n  if (excludeKeywords.some(kw => text.includes(kw.toLowerCase()))) return;\n  \n  allNews.push({\n    title: article.title,\n    description: article.description || '',\n    url: article.url,\n    source: article.source?.name || 'NewsAPI',\n    publishedAt: article.publishedAt,\n    imageUrl: article.urlToImage || '',\n    content: article.content || ''\n  });\n});\n\n// Process RSS items\nrssItems.forEach(item => {\n  if (!item.title) return;\n  \n  const text = (item.title + ' ' + (item.contentSnippet || '')).toLowerCase();\n  if (excludeKeywords.some(kw => text.includes(kw.toLowerCase()))) return;\n  \n  allNews.push({\n    title: item.title,\n    description: item.contentSnippet || item.content || '',\n    url: item.link,\n    source: item.creator || 'RSS Feed',\n    publishedAt: item.pubDate || item.isoDate,\n    imageUrl: item.enclosure?.url || '',\n    content: item.content || ''\n  });\n});\n\n// Remove duplicates\nconst seen = new Set();\nconst uniqueNews = allNews.filter(article => {\n  const normalizedTitle = article.title.toLowerCase().substring(0, 50);\n  if (seen.has(normalizedTitle)) return false;\n  seen.add(normalizedTitle);\n  return true;\n});\n\n// Sort by date and limit\nconst maxArticles = client.preferences.maxArticles || 15;\nconst sortedNews = uniqueNews\n  .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))\n  .slice(0, maxArticles);\n\nreturn [{ \n  json: { \n    client,\n    articles: sortedNews, \n    count: sortedNews.length \n  } \n}];"
+      },
+      "id": "process-news",
+      "name": "Process Client News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0],
+      "notes": "Processes and filters news for current client"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-articles",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-has-articles",
+      "name": "Has Articles?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 0],
+      "notes": "Only proceed if we have articles for this client"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a news categorization assistant for the {{ $json.client.industry }} industry.\n\nAvailable categories: {{ Object.keys($json.client.categories).join(', ') }}\n\nFor each article:\n1. Assign ONE category from the list above\n2. Generate a 1-sentence summary (max 100 chars)\n3. Score importance 1-10\n\nArticles:\n{{ JSON.stringify($json.articles.map((a, i) => ({ id: i, title: a.title, desc: a.description.substring(0, 200) }))) }}\n\nRespond with JSON only:\n{\"categorized\": [{\"id\": 0, \"category\": \"Category Name\", \"summary\": \"Brief summary\", \"importance\": 8}, ...]}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "ai-categorize",
+      "name": "AI Categorize",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1540, -100],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI Credentials"
+        }
+      },
+      "notes": "AI categorization using client's custom categories"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $('Has Articles?').first().json;\nconst client = inputData.client;\nconst articles = inputData.articles;\nconst aiResponse = $input.first().json.message?.content || $input.first().json.text || '{\"categorized\":[]}';\n\n// Parse AI response\nlet categorized = [];\ntry {\n  const parsed = JSON.parse(aiResponse.replace(/```json\\n?|```/g, '').trim());\n  categorized = parsed.categorized || [];\n} catch (e) {\n  // Fallback: keyword-based categorization\n  categorized = articles.map((article, i) => {\n    const text = (article.title + ' ' + article.description).toLowerCase();\n    let category = 'Other';\n    \n    for (const [cat, data] of Object.entries(client.categories)) {\n      if (data.keywords && data.keywords.some(kw => text.includes(kw))) {\n        category = cat;\n        break;\n      }\n    }\n    \n    return { id: i, category, summary: article.description.substring(0, 100), importance: 5 };\n  });\n}\n\n// Enrich articles\nconst enrichedArticles = articles.map((article, index) => {\n  const catInfo = categorized.find(c => c.id === index) || {\n    category: 'Other',\n    summary: article.description.substring(0, 100),\n    importance: 5\n  };\n  \n  const categoryData = client.categories[catInfo.category] || client.categories['Other'] || { icon: '📰', color: '#6B7280' };\n  \n  return {\n    ...article,\n    category: catInfo.category,\n    categoryIcon: categoryData.icon,\n    categoryColor: categoryData.color,\n    summary: catInfo.summary,\n    importance: catInfo.importance\n  };\n});\n\n// Find top story\nconst sortedByImportance = [...enrichedArticles].sort((a, b) => b.importance - a.importance);\nconst topStory = sortedByImportance[0];\n\n// Group by category\nconst groupedByCategory = {};\nenrichedArticles.forEach(article => {\n  if (!groupedByCategory[article.category]) {\n    groupedByCategory[article.category] = {\n      icon: article.categoryIcon,\n      color: article.categoryColor,\n      articles: []\n    };\n  }\n  groupedByCategory[article.category].articles.push(article);\n});\n\nreturn [{ \n  json: { \n    client,\n    topStory,\n    categories: groupedByCategory,\n    totalArticles: enrichedArticles.length\n  } \n}];"
+      },
+      "id": "enrich-articles",
+      "name": "Enrich & Group",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, -100],
+      "notes": "Groups articles by client's custom categories"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { client, topStory, categories, totalArticles } = $input.first().json;\nconst today = new Date().toLocaleDateString('en-US', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\nconst primaryColor = client.branding.primaryColor || '#667eea';\nconst secondaryColor = client.branding.secondaryColor || '#764ba2';\n\n// Build HTML Email with client branding\nlet html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    * { box-sizing: border-box; }\n    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; line-height: 1.6; }\n    .container { max-width: 680px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }\n    .header { background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%); color: white; padding: 40px 30px; text-align: center; }\n    .header h1 { margin: 0; font-size: 28px; font-weight: 700; }\n    .header .subtitle { margin: 10px 0 0 0; opacity: 0.9; font-size: 15px; }\n    .header .stats { margin-top: 20px; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; font-size: 14px; display: inline-block; }\n    .toc { background: #f8fafc; padding: 25px 30px; border-bottom: 1px solid #e2e8f0; }\n    .toc h3 { margin: 0 0 15px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }\n    .toc-list { display: flex; flex-wrap: wrap; gap: 10px; }\n    .toc-item { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: white; border-radius: 8px; font-size: 13px; color: #475569; border: 1px solid #e2e8f0; text-decoration: none; }\n    .toc-count { background: #e2e8f0; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }\n    .top-story { padding: 30px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }\n    .top-story-badge { background: #f59e0b; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; display: inline-block; margin-bottom: 15px; }\n    .top-story h2 { margin: 0 0 12px 0; font-size: 22px; line-height: 1.3; }\n    .top-story h2 a { color: #1e293b; text-decoration: none; }\n    .top-story .summary { color: #57534e; font-size: 15px; margin: 0 0 15px 0; }\n    .top-story .meta { font-size: 13px; color: #78716c; }\n    .content { padding: 30px; }\n    .category-section { margin-bottom: 30px; }\n    .category-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid; }\n    .category-icon { font-size: 22px; }\n    .category-title { margin: 0; font-size: 18px; font-weight: 600; color: #1e293b; }\n    .category-count { font-size: 13px; color: #64748b; margin-left: auto; }\n    .article { background: #f8fafc; border-radius: 12px; padding: 18px; margin-bottom: 12px; border-left: 4px solid; }\n    .article h3 { margin: 0 0 8px 0; font-size: 15px; font-weight: 600; line-height: 1.4; }\n    .article h3 a { color: #1e293b; text-decoration: none; }\n    .article .summary { color: #64748b; margin: 0 0 10px 0; font-size: 13px; }\n    .article .meta { font-size: 12px; color: #94a3b8; display: flex; gap: 12px; }\n    .article .read-more { color: ${primaryColor}; text-decoration: none; font-weight: 500; margin-left: auto; }\n    .footer { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 30px; text-align: center; }\n    .footer p { margin: 0 0 8px 0; font-size: 14px; opacity: 0.9; }\n    .footer .brand { font-size: 16px; font-weight: 600; margin-bottom: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>${client.branding.newsletterTitle}</h1>\n      <p class=\"subtitle\">${client.industry} Industry Updates</p>\n      <p class=\"subtitle\" style=\"font-size: 13px; opacity: 0.7;\">${today}</p>\n      <div class=\"stats\">📰 ${totalArticles} articles • ${Object.keys(categories).length} categories</div>\n    </div>\n    \n    <div class=\"toc\">\n      <h3>📋 In This Issue</h3>\n      <div class=\"toc-list\">\n`;\n\nfor (const [catName, catData] of Object.entries(categories)) {\n  html += `<span class=\"toc-item\"><span>${catData.icon}</span><span>${catName}</span><span class=\"toc-count\">${catData.articles.length}</span></span>`;\n}\n\nhtml += `\n      </div>\n    </div>\n    \n    <div class=\"top-story\">\n      <div class=\"top-story-badge\">⭐ Top Story</div>\n      <h2><a href=\"${topStory.url}\">${topStory.title}</a></h2>\n      <p class=\"summary\">${topStory.summary}</p>\n      <div class=\"meta\">${topStory.categoryIcon} ${topStory.category} • ${topStory.source}</div>\n    </div>\n    \n    <div class=\"content\">\n`;\n\nfor (const [catName, catData] of Object.entries(categories)) {\n  html += `\n      <div class=\"category-section\">\n        <div class=\"category-header\" style=\"border-color: ${catData.color};\">\n          <span class=\"category-icon\">${catData.icon}</span>\n          <h2 class=\"category-title\">${catName}</h2>\n          <span class=\"category-count\">${catData.articles.length}</span>\n        </div>\n`;\n  \n  catData.articles.forEach(article => {\n    const date = new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });\n    html += `\n        <div class=\"article\" style=\"border-color: ${catData.color};\">\n          <h3><a href=\"${article.url}\">${article.title}</a></h3>\n          <p class=\"summary\">${article.summary}</p>\n          <div class=\"meta\"><span>${article.source}</span><span>${date}</span><a href=\"${article.url}\" class=\"read-more\">Read →</a></div>\n        </div>\n`;\n  });\n  \n  html += `      </div>`;\n}\n\nhtml += `\n    </div>\n    \n    <div class=\"footer\">\n      <p class=\"brand\">Curated for ${client.branding.companyName}</p>\n      <p>Your daily ${client.industry} intelligence</p>\n    </div>\n  </div>\n</body>\n</html>`;\n\nreturn [{ \n  json: { \n    client,\n    topStory,\n    categories,\n    htmlContent: html,\n    subject: `${client.branding.newsletterTitle} - ${today}`,\n    recipients: client.delivery.email.recipients\n  } \n}];"
+      },
+      "id": "format-email",
+      "name": "Format Client Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, -200],
+      "notes": "Creates branded HTML email for client"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { client, topStory, categories } = $input.first().json;\nconst today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });\n\nconst esc = (text) => text.replace(/[_*\\[\\]()~`>#+=|{}.!-]/g, '\\\\$&');\n\nlet msg = `*${esc(client.branding.newsletterTitle)}*\\n`;\nmsg += `_${esc(client.industry)} • ${esc(today)}_\\n`;\nmsg += '━━━━━━━━━━━━━━━━━━━━\\n\\n';\n\nmsg += `⭐ *TOP STORY*\\n`;\nmsg += `${topStory.categoryIcon} [${esc(topStory.title.substring(0, 60))}](${topStory.url})\\n`;\nmsg += `_${esc(topStory.summary)}_\\n\\n`;\nmsg += '━━━━━━━━━━━━━━━━━━━━\\n\\n';\n\nlet count = 0;\nfor (const [catName, catData] of Object.entries(categories)) {\n  if (count >= 6) break;\n  msg += `${catData.icon} *${esc(catName)}*\\n`;\n  catData.articles.slice(0, 2).forEach(a => {\n    if (count >= 6) return;\n    msg += `  • [${esc(a.title.substring(0, 50))}...](${a.url})\\n`;\n    count++;\n  });\n  msg += '\\n';\n}\n\nconst total = Object.values(categories).reduce((s, c) => s + c.articles.length, 0);\nif (total > 6) msg += `📧 _\\\\+${total - 6} more in email_\\n`;\n\nmsg += '\\n━━━━━━━━━━━━━━━━━━━━';\nmsg += `\\n_${esc(client.branding.companyName)}_`;\n\nreturn [{ json: { client, telegramMessage: msg, chatId: client.delivery.telegram.chatId } }];"
+      },
+      "id": "format-telegram",
+      "name": "Format Client Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 0],
+      "notes": "Creates Telegram message for client"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "email-enabled",
+              "leftValue": "={{ $json.client.delivery.email.enabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-email-enabled",
+      "name": "Email Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2200, -200],
+      "notes": "Check if email delivery is enabled for client"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "telegram-enabled",
+              "leftValue": "={{ $json.client.delivery.telegram.enabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "has-chat-id",
+              "leftValue": "={{ $json.chatId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-telegram-enabled",
+      "name": "Telegram Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2200, 0],
+      "notes": "Check if Telegram delivery is enabled for client"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipients }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.htmlContent }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2420, -200],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-credentials",
+          "name": "SMTP Credentials"
+        }
+      },
+      "notes": "Sends newsletter to client's email recipients"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.telegramMessage }}",
+        "additionalFields": {
+          "parse_mode": "MarkdownV2",
+          "disable_web_page_preview": false
+        }
+      },
+      "id": "send-telegram",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2420, 0],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-credentials",
+          "name": "Telegram Bot Credentials"
+        }
+      },
+      "notes": "Sends to client's Telegram channel"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log delivery for this client\nconst client = $input.first().json.client || $('Enrich & Group').first().json.client;\n\nconst log = {\n  clientId: client.id,\n  clientName: client.name,\n  industry: client.industry,\n  timestamp: new Date().toISOString(),\n  status: 'delivered'\n};\n\nconsole.log(`✅ Newsletter delivered to ${client.name}`);\n\nreturn [{ json: log }];"
+      },
+      "id": "log-client-delivery",
+      "name": "Log Client Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, -100],
+      "notes": "Logs successful delivery for client"
+    },
+    {
+      "parameters": {},
+      "id": "skip-client",
+      "name": "Skip (No Articles)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1540, 100],
+      "notes": "Skips client if no articles found"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Final summary of all client deliveries\nconst allLogs = $input.all().map(item => item.json);\n\nconst summary = {\n  timestamp: new Date().toISOString(),\n  totalClientsProcessed: allLogs.length,\n  clients: allLogs.map(l => ({ id: l.clientId, name: l.clientName, status: l.status }))\n};\n\nconsole.log('=== MULTI-CLIENT NEWSLETTER COMPLETE ===');\nconsole.log(JSON.stringify(summary, null, 2));\n\nreturn [{ json: summary }];"
+      },
+      "id": "final-summary",
+      "name": "Final Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2860, 0],
+      "notes": "Summarizes all client deliveries"
+    }
+  ],
+  "connections": {
+    "Morning Schedule": {
+      "main": [
+        [
+          {
+            "node": "Load All Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load All Clients": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Clients": {
+      "main": [
+        [
+          {
+            "node": "Store Client Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Client Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch News API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch News API": {
+      "main": [
+        [
+          {
+            "node": "Process Client News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "Process Client News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Client News": {
+      "main": [
+        [
+          {
+            "node": "Has Articles?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Articles?": {
+      "main": [
+        [
+          {
+            "node": "AI Categorize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip (No Articles)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Categorize": {
+      "main": [
+        [
+          {
+            "node": "Enrich & Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich & Group": {
+      "main": [
+        [
+          {
+            "node": "Format Client Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Client Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Client Email": {
+      "main": [
+        [
+          {
+            "node": "Check Email Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Client Telegram": {
+      "main": [
+        [
+          {
+            "node": "Check Telegram Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Check Telegram Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Client Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Log Client Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip (No Articles)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Client Delivery": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "newsletter",
+      "id": "1"
+    },
+    {
+      "name": "multi-client",
+      "id": "2"
+    },
+    {
+      "name": "automation",
+      "id": "3"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-01-18T00:00:00.000Z",
+  "versionId": "1"
+}

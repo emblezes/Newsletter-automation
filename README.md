@@ -1,109 +1,168 @@
 # N8N Newsletter Automation
 
-Automated industry-specific newsletter workflow that curates news from multiple sources and delivers it via Email and Telegram every morning.
+Automated industry-specific newsletter workflow that curates news from multiple sources and delivers it via Email and Telegram every morning. Supports both single-client and multi-client (agency) modes.
 
 ## Features
 
-- **Scheduled Delivery**: Automatically runs every morning at your configured time
-- **Multi-Source Aggregation**: Pulls from NewsAPI and RSS feeds
-- **Industry Presets**: Pre-configured for 8 industries (Tech, Finance, Healthcare, etc.)
-- **Dual Channel Delivery**: Sends beautiful HTML emails and formatted Telegram messages
-- **Customizable**: Easy configuration via environment variables
-- **Error Handling**: Built-in logging and error management
+- **Multi-Client Support**: Manage unlimited clients with different industries
+- **Per-Client Branding**: Custom colors, logos, and newsletter titles
+- **Industry-Specific Categories**: AI-powered categorization with custom categories per client
+- **Scheduled Delivery**: Configurable send times per client
+- **Dual Channel Delivery**: Email and/or Telegram per client preference
+- **AI-Powered Summaries**: Automatic article summarization and importance scoring
 
-## Workflow Overview
+## Available Workflows
+
+| Workflow | File | Use Case |
+|----------|------|----------|
+| Single Client | `newsletter-automation.json` | One company, one industry |
+| Multi-Client | `newsletter-multi-client.json` | Agency managing multiple clients |
+
+---
+
+## Multi-Client Mode (Agency)
+
+Perfect for agencies or companies managing newsletters for multiple clients.
+
+### Architecture
 
 ```
-Morning Schedule (7:00 AM)
-    │
-    ▼
-Load Configuration
-    │
-    ├──────────────────┐
-    ▼                  ▼
-Fetch NewsAPI    Fetch RSS Feeds
-    │                  │
-    └────────┬─────────┘
-             ▼
-    Process & Merge News
-             │
-             ▼
-       Has Articles?
-        │        │
-       YES      NO
-        │        │
-   ┌────┴────┐   └──→ Skip
-   ▼         ▼
-Format    Format
-Email     Telegram
-   │         │
-   ▼         ▼
-Send      Send
-Email     Telegram
-   │         │
-   └────┬────┘
-        ▼
-   Log Success
+Morning Schedule (6:00 AM)
+         │
+    Load All Clients
+         │
+    ┌────┴────┐
+    │  LOOP   │ ◄─────────────────────────────────┐
+    └────┬────┘                                   │
+         │                                        │
+    For Each Client:                              │
+         │                                        │
+    ┌────┴────┐                                   │
+    │ Client  │──► Fetch News (Keywords + RSS)    │
+    │ Config  │         │                         │
+    └─────────┘         ▼                         │
+              AI Categorize (Client Categories)   │
+                        │                         │
+                        ▼                         │
+              ┌─────────┴─────────┐               │
+              ▼                   ▼               │
+        Format Email       Format Telegram        │
+        (Client Brand)     (Client Brand)         │
+              │                   │               │
+              ▼                   ▼               │
+         Send Email?        Send Telegram?        │
+         (if enabled)       (if enabled)          │
+              │                   │               │
+              └─────────┬─────────┘               │
+                        │                         │
+                   Log Delivery                   │
+                        │                         │
+                        └─────────────────────────┘
+                        │
+                   Final Summary
 ```
 
-## Quick Start
+### Client Configuration
 
-### 1. Prerequisites
+Each client has their own complete configuration in `config/clients.json`:
 
-- [N8N](https://n8n.io/) installed (self-hosted or cloud)
-- [NewsAPI](https://newsapi.org/) account (free tier available)
-- Email SMTP access (Gmail, SendGrid, etc.)
-- Telegram Bot (optional, for Telegram delivery)
+```json
+{
+  "id": "client-001",
+  "name": "TechVentures Inc",
+  "active": true,
+  "industry": "Technology",
+  "branding": {
+    "companyName": "TechVentures Inc",
+    "newsletterTitle": "Tech Ventures Daily",
+    "primaryColor": "#667eea",
+    "secondaryColor": "#764ba2"
+  },
+  "sources": {
+    "keywords": "AI, machine learning, cloud computing",
+    "rssFeeds": ["https://feeds.feedburner.com/TechCrunch/"],
+    "excludeKeywords": ["sponsored", "advertisement"]
+  },
+  "categories": {
+    "AI & ML": { "icon": "🤖", "color": "#8B5CF6", "keywords": ["ai", "machine learning"] },
+    "Cloud": { "icon": "☁️", "color": "#0EA5E9", "keywords": ["cloud", "aws", "azure"] }
+  },
+  "delivery": {
+    "email": {
+      "enabled": true,
+      "recipients": ["team@client.com"]
+    },
+    "telegram": {
+      "enabled": true,
+      "chatId": "-1001234567001"
+    }
+  },
+  "preferences": {
+    "maxArticles": 12,
+    "aiSummaries": true
+  }
+}
+```
 
-### 2. Import Workflow
+### Pre-Configured Clients (Examples)
 
-1. Open your N8N instance
-2. Go to **Workflows** → **Import from File**
-3. Select `workflows/newsletter-automation.json`
-4. Click **Import**
+| Client | Industry | Categories | Delivery |
+|--------|----------|------------|----------|
+| TechVentures Inc | Technology | AI, Cloud, Startups, Dev | Email + Telegram |
+| FinanceFirst Bank | Finance | Fintech, Crypto, Markets, Regulation | Email + Telegram |
+| MedTech Solutions | Healthcare | Pharma, Digital Health, Devices | Email only |
+| EcoEnergy Corp | Energy | Solar, EVs, Policy, Storage | Email + Telegram |
+| RetailMax Group | E-commerce | E-commerce, Supply Chain, Retail Tech | Email only |
 
-### 3. Configure Credentials
+### Adding a New Client
 
-#### NewsAPI
-1. Go to [newsapi.org](https://newsapi.org) and sign up
-2. Copy your API key
-3. In N8N, go to **Credentials** → **New** → **HTTP Header Auth**
-4. Name: `NewsAPI Credentials`
-5. Header Name: `X-Api-Key`
-6. Header Value: `your_api_key`
+1. Open `config/clients.json`
+2. Copy the template from `templates.newClient`
+3. Customize all fields for your new client
+4. Set `active: true` to enable
+5. The workflow will automatically include them in the next run
 
-#### Email (SMTP)
-1. Go to **Credentials** → **New** → **SMTP**
-2. Configure with your email provider:
+### Client-Specific Branding
 
-   **Gmail Example:**
-   - Host: `smtp.gmail.com`
-   - Port: `587`
-   - User: `your-email@gmail.com`
-   - Password: [App Password](https://support.google.com/accounts/answer/185833)
-   - SSL/TLS: `true`
+Each email is fully branded for the client:
 
-   **SendGrid Example:**
-   - Host: `smtp.sendgrid.net`
-   - Port: `587`
-   - User: `apikey`
-   - Password: `your_sendgrid_api_key`
+```
+┌─────────────────────────────────────────────────┐
+│  ▓▓▓ CLIENT PRIMARY → SECONDARY GRADIENT ▓▓▓   │
+│         Client's Newsletter Title               │
+│         Client's Industry Updates               │
+├─────────────────────────────────────────────────┤
+│  📋 IN THIS ISSUE                               │
+│  [Client's Category 1] [Category 2] [...]       │
+├─────────────────────────────────────────────────┤
+│  ⭐ TOP STORY                                   │
+│  (AI-selected most important article)           │
+├─────────────────────────────────────────────────┤
+│  🤖 CLIENT CATEGORY 1 ─────── (color-coded)    │
+│  ├── Article with AI summary                    │
+│  └── Article with AI summary                    │
+│                                                 │
+│  ☁️ CLIENT CATEGORY 2 ─────── (color-coded)    │
+│  └── ...                                        │
+├─────────────────────────────────────────────────┤
+│  Curated for [Client Company Name]              │
+└─────────────────────────────────────────────────┘
+```
 
-#### Telegram Bot
-1. Message [@BotFather](https://t.me/BotFather) on Telegram
-2. Send `/newbot` and follow instructions
-3. Copy the bot token
-4. In N8N: **Credentials** → **New** → **Telegram API**
-5. Paste your bot token
+---
 
-**Get your Chat ID:**
-- Add [@userinfobot](https://t.me/userinfobot) to your group/channel
-- Or use [@getidsbot](https://t.me/getidsbot)
-- For channels: the ID will be negative (e.g., `-1001234567890`)
+## Single Client Mode
 
-### 4. Configure Environment Variables
+For companies managing their own newsletter.
 
-Set these environment variables in your N8N instance:
+### Quick Start
+
+1. Import `workflows/newsletter-automation.json`
+2. Configure credentials (NewsAPI, SMTP, Telegram, OpenAI)
+3. Set environment variables
+4. Activate workflow
+
+### Environment Variables
 
 ```bash
 # Industry Settings
@@ -116,121 +175,127 @@ COMPANY_NAME=Your Company
 EMAIL_RECIPIENTS=team@company.com
 TELEGRAM_CHAT_ID=-1001234567890
 
-# RSS Feeds (comma-separated)
+# RSS Feeds
 RSS_FEEDS=https://feeds.feedburner.com/TechCrunch/
 ```
 
-### 5. Activate Workflow
+---
 
-1. Open the imported workflow
-2. Click **Active** toggle in the top right
-3. The workflow will now run daily at 7:00 AM
+## Required Credentials
+
+### 1. NewsAPI
+```
+Type: HTTP Header Auth
+Name: NewsAPI Credentials
+Header: X-Api-Key
+Value: your_api_key_from_newsapi.org
+```
+
+### 2. OpenAI (for AI categorization)
+```
+Type: OpenAI API
+Name: OpenAI Credentials
+API Key: your_openai_api_key
+```
+
+### 3. SMTP (Email)
+```
+Type: SMTP
+Host: smtp.gmail.com (or your provider)
+Port: 587
+User: your-email@gmail.com
+Password: app_password
+```
+
+### 4. Telegram Bot
+```
+Type: Telegram API
+Bot Token: from @BotFather
+```
+
+---
 
 ## Industry Presets
 
-Choose from pre-configured industry settings in `config/industries.json`:
+Pre-configured in `config/industries.json`:
 
-| Industry | Keywords | Sample RSS Feeds |
-|----------|----------|------------------|
-| Technology | AI, ML, cloud, cybersecurity | TechCrunch, The Verge, Wired |
-| Finance | fintech, crypto, investing | FT, Bloomberg, CoinDesk |
-| Healthcare | pharma, biotech, digital health | Fierce Healthcare, Health IT News |
-| E-commerce | retail, logistics, supply chain | Retail Dive, E-commerce Times |
-| Manufacturing | Industry 4.0, IoT, robotics | Industry Week, Automation World |
-| Energy | renewable, solar, EVs | GTM, CleanTechnica |
-| Real Estate | proptech, commercial RE | Bisnow |
-| Marketing | adtech, SEO, social media | Mashable, Adweek |
+| Industry | Icon | Example Keywords |
+|----------|------|------------------|
+| Technology | 💻 | AI, cloud, software, startups |
+| Finance | 💳 | fintech, crypto, markets, banking |
+| Healthcare | 💊 | pharma, biotech, digital health |
+| E-commerce | 🛒 | retail, logistics, supply chain |
+| Energy | ⚡ | solar, wind, EVs, sustainability |
+| Manufacturing | 🏭 | IoT, Industry 4.0, robotics |
+| Real Estate | 🏢 | proptech, commercial RE |
+| Marketing | 📢 | adtech, SEO, social media |
 
-## Customization
-
-### Change Schedule Time
-
-Edit the **Morning Schedule** node:
-```json
-{
-  "rule": {
-    "interval": [
-      {
-        "triggerAtHour": 9,  // Change to your preferred hour (24h format)
-        "triggerAtMinute": 0
-      }
-    ]
-  }
-}
-```
-
-### Add More RSS Feeds
-
-Update the `RSS_FEEDS` environment variable or modify the RSS feed list in the configuration.
-
-### Customize Email Template
-
-Edit the **Format Email Newsletter** code node to modify:
-- Colors and branding
-- Layout structure
-- Number of articles shown
-- Footer content
-
-### Adjust Article Count
-
-In the **Process & Merge News** node, change:
-```javascript
-.slice(0, 10)  // Change 10 to your desired number
-```
-
-## Troubleshooting
-
-### No articles appearing
-- Check NewsAPI key is valid
-- Verify RSS feed URLs are accessible
-- Check network connectivity from N8N server
-
-### Email not sending
-- Verify SMTP credentials
-- Check spam folder
-- For Gmail: ensure "Less secure app access" or use App Password
-
-### Telegram not working
-- Verify bot token is correct
-- Ensure bot is added to the channel/group
-- Check chat ID is correct (include `-` for groups)
-
-### Workflow not triggering
-- Ensure workflow is **Active**
-- Check N8N server timezone settings
-- Verify schedule node configuration
+---
 
 ## File Structure
 
 ```
 Newsletter-automation/
 ├── workflows/
-│   └── newsletter-automation.json   # Main N8N workflow
+│   ├── newsletter-automation.json      # Single-client workflow
+│   └── newsletter-multi-client.json    # Multi-client workflow
 ├── config/
-│   └── industries.json              # Industry presets
-├── .env.example                     # Environment template
-└── README.md                        # This file
+│   ├── clients.json                    # Multi-client configurations
+│   └── industries.json                 # Industry presets
+├── .env.example                        # Environment template
+└── README.md                           # This file
 ```
 
-## API Limits
+---
 
-| Service | Free Tier Limit |
-|---------|-----------------|
-| NewsAPI | 100 requests/day |
-| Telegram | 30 messages/second |
-| Most SMTP | Varies by provider |
+## API Limits & Costs
 
-## Contributing
+| Service | Free Tier | Notes |
+|---------|-----------|-------|
+| NewsAPI | 100 req/day | ~6-7 clients/day with 15 articles each |
+| OpenAI GPT-4o-mini | ~$0.15/1M tokens | Very affordable for categorization |
+| Telegram | 30 msg/sec | More than enough |
+| SMTP | Varies | Check your provider |
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+For high-volume (many clients), consider:
+- NewsAPI paid plan ($449/mo unlimited)
+- Caching news results
+- Staggered sending times
+
+---
+
+## Troubleshooting
+
+### Multi-Client Issues
+
+**Client not receiving newsletter:**
+- Check `active: true` in client config
+- Verify email recipients are correct
+- Check Telegram chatId (must include `-` for groups)
+
+**Wrong articles for client:**
+- Review keywords in `sources.keywords`
+- Check `excludeKeywords` isn't too aggressive
+- Verify RSS feeds are correct for industry
+
+**Branding not showing:**
+- Ensure `branding.primaryColor` is valid hex
+- Check `branding.newsletterTitle` is set
+
+### General Issues
+
+**AI categorization failing:**
+- Check OpenAI credentials
+- Verify API key has credits
+- Fallback keyword categorization will work
+
+**No articles appearing:**
+- Check NewsAPI key validity
+- Verify RSS feeds are accessible
+- Check network from N8N server
+
+---
 
 ## License
 
-MIT License - feel free to use and modify for your needs.
-
-## Support
-
-For issues and feature requests, please open a GitHub issue.
+MIT License - use and modify freely.
