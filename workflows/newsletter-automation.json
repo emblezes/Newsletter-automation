@@ -42,7 +42,7 @@
             },
             {
               "name": "pageSize",
-              "value": "10"
+              "value": "15"
             }
           ]
         },
@@ -75,47 +75,91 @@
     },
     {
       "parameters": {
-        "jsCode": "// Load configuration from environment or static config\nconst config = {\n  industryName: $env.INDUSTRY_NAME || 'Technology',\n  industryKeywords: $env.INDUSTRY_KEYWORDS || 'AI, machine learning, software development',\n  newsApiUrl: 'https://newsapi.org/v2/everything',\n  rssFeeds: $env.RSS_FEEDS || 'https://feeds.feedburner.com/TechCrunch/',\n  emailRecipients: $env.EMAIL_RECIPIENTS || 'team@company.com',\n  telegramChatId: $env.TELEGRAM_CHAT_ID || '',\n  companyName: $env.COMPANY_NAME || 'Your Company',\n  newsletterTitle: $env.NEWSLETTER_TITLE || 'Daily Industry Digest'\n};\n\nreturn [{ json: { config } }];"
+        "jsCode": "// Load configuration from environment or static config\nconst config = {\n  industryName: $env.INDUSTRY_NAME || 'Technology',\n  industryKeywords: $env.INDUSTRY_KEYWORDS || 'AI, machine learning, software development',\n  newsApiUrl: 'https://newsapi.org/v2/everything',\n  rssFeeds: $env.RSS_FEEDS || 'https://feeds.feedburner.com/TechCrunch/',\n  emailRecipients: $env.EMAIL_RECIPIENTS || 'team@company.com',\n  telegramChatId: $env.TELEGRAM_CHAT_ID || '',\n  companyName: $env.COMPANY_NAME || 'Your Company',\n  newsletterTitle: $env.NEWSLETTER_TITLE || 'Daily Industry Digest',\n  // Category configuration with icons and colors\n  categories: {\n    'AI & Machine Learning': { icon: '🤖', color: '#8B5CF6', keywords: ['ai', 'artificial intelligence', 'machine learning', 'deep learning', 'neural', 'gpt', 'llm', 'chatgpt', 'openai', 'anthropic'] },\n    'Cloud & Infrastructure': { icon: '☁️', color: '#0EA5E9', keywords: ['cloud', 'aws', 'azure', 'google cloud', 'kubernetes', 'docker', 'infrastructure', 'devops', 'serverless'] },\n    'Cybersecurity': { icon: '🔒', color: '#EF4444', keywords: ['security', 'cyber', 'hack', 'breach', 'vulnerability', 'ransomware', 'privacy', 'encryption'] },\n    'Startups & Funding': { icon: '🚀', color: '#F59E0B', keywords: ['startup', 'funding', 'venture', 'series a', 'series b', 'ipo', 'acquisition', 'investment', 'unicorn'] },\n    'Software Development': { icon: '💻', color: '#10B981', keywords: ['developer', 'programming', 'software', 'code', 'github', 'open source', 'api', 'framework'] },\n    'Hardware & Devices': { icon: '📱', color: '#6366F1', keywords: ['hardware', 'chip', 'semiconductor', 'device', 'smartphone', 'laptop', 'processor', 'nvidia', 'apple', 'samsung'] },\n    'Business & Strategy': { icon: '📊', color: '#EC4899', keywords: ['business', 'strategy', 'market', 'revenue', 'growth', 'layoff', 'merger', 'ceo', 'earnings'] },\n    'Other': { icon: '📰', color: '#6B7280', keywords: [] }\n  }\n};\n\nreturn [{ json: { config } }];"
       },
       "id": "load-config",
       "name": "Load Configuration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [220, 0],
-      "notes": "Loads newsletter configuration from environment variables"
+      "notes": "Loads newsletter configuration with category definitions"
     },
     {
       "parameters": {
-        "jsCode": "// Combine and process news from all sources\nconst newsApiData = $input.first().json?.articles || [];\nconst rssData = $input.all().slice(1).map(item => item.json) || [];\n\n// Normalize news items\nconst allNews = [];\n\n// Process NewsAPI articles\nnewsApiData.forEach(article => {\n  allNews.push({\n    title: article.title,\n    description: article.description || '',\n    url: article.url,\n    source: article.source?.name || 'NewsAPI',\n    publishedAt: article.publishedAt,\n    imageUrl: article.urlToImage || ''\n  });\n});\n\n// Process RSS items\nrssData.forEach(item => {\n  allNews.push({\n    title: item.title,\n    description: item.contentSnippet || item.content || '',\n    url: item.link,\n    source: item.creator || 'RSS Feed',\n    publishedAt: item.pubDate || item.isoDate,\n    imageUrl: item.enclosure?.url || ''\n  });\n});\n\n// Sort by date and take top 10\nconst sortedNews = allNews\n  .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))\n  .slice(0, 10);\n\nreturn [{ json: { articles: sortedNews, count: sortedNews.length } }];"
+        "jsCode": "// Combine and process news from all sources\nconst newsApiData = $input.first().json?.articles || [];\nconst rssData = $input.all().slice(1).map(item => item.json) || [];\n\n// Normalize news items\nconst allNews = [];\n\n// Process NewsAPI articles\nnewsApiData.forEach(article => {\n  allNews.push({\n    title: article.title,\n    description: article.description || '',\n    url: article.url,\n    source: article.source?.name || 'NewsAPI',\n    publishedAt: article.publishedAt,\n    imageUrl: article.urlToImage || '',\n    content: article.content || ''\n  });\n});\n\n// Process RSS items\nrssData.forEach(item => {\n  allNews.push({\n    title: item.title,\n    description: item.contentSnippet || item.content || '',\n    url: item.link,\n    source: item.creator || 'RSS Feed',\n    publishedAt: item.pubDate || item.isoDate,\n    imageUrl: item.enclosure?.url || '',\n    content: item.content || ''\n  });\n});\n\n// Remove duplicates based on title similarity\nconst seen = new Set();\nconst uniqueNews = allNews.filter(article => {\n  const normalizedTitle = article.title.toLowerCase().substring(0, 50);\n  if (seen.has(normalizedTitle)) return false;\n  seen.add(normalizedTitle);\n  return true;\n});\n\n// Sort by date and take top 15\nconst sortedNews = uniqueNews\n  .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))\n  .slice(0, 15);\n\nreturn [{ json: { articles: sortedNews, count: sortedNews.length } }];"
       },
       "id": "process-news",
       "name": "Process & Merge News",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [660, 0],
-      "notes": "Combines news from multiple sources and normalizes format"
+      "notes": "Combines news from multiple sources, removes duplicates"
     },
     {
       "parameters": {
-        "jsCode": "const articles = $input.first().json.articles;\nconst config = $('Load Configuration').first().json.config;\nconst today = new Date().toLocaleDateString('en-US', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\n// Build HTML Email\nlet htmlContent = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }\n    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }\n    .header h1 { margin: 0; font-size: 28px; }\n    .header p { margin: 10px 0 0 0; opacity: 0.9; }\n    .content { padding: 30px; }\n    .article { border-bottom: 1px solid #eee; padding: 20px 0; }\n    .article:last-child { border-bottom: none; }\n    .article h2 { margin: 0 0 10px 0; font-size: 18px; }\n    .article h2 a { color: #333; text-decoration: none; }\n    .article h2 a:hover { color: #667eea; }\n    .article p { color: #666; margin: 0 0 10px 0; font-size: 14px; line-height: 1.6; }\n    .article .meta { color: #999; font-size: 12px; }\n    .footer { background: #f9f9f9; padding: 20px; text-align: center; color: #999; font-size: 12px; }\n    .btn { display: inline-block; background: #667eea; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 10px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>${config.newsletterTitle}</h1>\n      <p>${config.industryName} Industry Updates - ${today}</p>\n    </div>\n    <div class=\"content\">\n`;\n\narticles.forEach((article, index) => {\n  const date = new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });\n  htmlContent += `\n      <div class=\"article\">\n        <h2><a href=\"${article.url}\">${article.title}</a></h2>\n        <p>${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}</p>\n        <div class=\"meta\">Source: ${article.source} | ${date}</div>\n      </div>\n`;\n});\n\nhtmlContent += `\n    </div>\n    <div class=\"footer\">\n      <p>Curated by ${config.companyName}</p>\n      <p>You're receiving this because you subscribed to our ${config.industryName} newsletter.</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// Build Plain Text version\nlet textContent = `${config.newsletterTitle}\\n`;\ntextContent += `${config.industryName} Industry Updates - ${today}\\n`;\ntextContent += '='.repeat(50) + '\\n\\n';\n\narticles.forEach((article, index) => {\n  textContent += `${index + 1}. ${article.title}\\n`;\n  textContent += `   ${article.description.substring(0, 150)}...\\n`;\n  textContent += `   Read more: ${article.url}\\n`;\n  textContent += `   Source: ${article.source}\\n\\n`;\n});\n\ntextContent += '---\\n';\ntextContent += `Curated by ${config.companyName}\\n`;\n\nreturn [{ \n  json: { \n    htmlContent, \n    textContent,\n    subject: `${config.newsletterTitle} - ${today}`,\n    config \n  } \n}];"
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a news categorization and summarization assistant. Analyze the following news articles and return a JSON response.\n\nFor each article:\n1. Assign it to ONE category from this list: \"AI & Machine Learning\", \"Cloud & Infrastructure\", \"Cybersecurity\", \"Startups & Funding\", \"Software Development\", \"Hardware & Devices\", \"Business & Strategy\", \"Other\"\n2. Generate a concise 1-sentence summary (max 100 chars)\n3. Assign an importance score from 1-10 (10 = most important/impactful)\n\nArticles to analyze:\n{{ JSON.stringify($json.articles.map((a, i) => ({ id: i, title: a.title, description: a.description.substring(0, 300) }))) }}\n\nRespond ONLY with valid JSON in this exact format:\n{\n  \"categorized\": [\n    { \"id\": 0, \"category\": \"AI & Machine Learning\", \"summary\": \"Brief summary here\", \"importance\": 8 },\n    ...\n  ]\n}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "ai-categorize",
+      "name": "AI Categorize & Summarize",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [880, 0],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI Credentials"
+        }
+      },
+      "notes": "Uses AI to categorize articles by theme and generate summaries"
+    },
+    {
+      "parameters": {
+        "jsCode": "const articles = $('Process & Merge News').first().json.articles;\nconst config = $('Load Configuration').first().json.config;\nconst aiResponse = $input.first().json.message?.content || $input.first().json.text || '{\"categorized\":[]}';\n\n// Parse AI response\nlet categorized = [];\ntry {\n  const parsed = JSON.parse(aiResponse.replace(/```json\\n?|```/g, '').trim());\n  categorized = parsed.categorized || [];\n} catch (e) {\n  // Fallback: assign categories based on keywords\n  categorized = articles.map((article, i) => {\n    const text = (article.title + ' ' + article.description).toLowerCase();\n    let category = 'Other';\n    \n    for (const [cat, data] of Object.entries(config.categories)) {\n      if (data.keywords.some(kw => text.includes(kw))) {\n        category = cat;\n        break;\n      }\n    }\n    \n    return {\n      id: i,\n      category: category,\n      summary: article.description.substring(0, 100),\n      importance: 5\n    };\n  });\n}\n\n// Merge AI categorization with articles\nconst enrichedArticles = articles.map((article, index) => {\n  const catInfo = categorized.find(c => c.id === index) || {\n    category: 'Other',\n    summary: article.description.substring(0, 100),\n    importance: 5\n  };\n  \n  const categoryData = config.categories[catInfo.category] || config.categories['Other'];\n  \n  return {\n    ...article,\n    category: catInfo.category,\n    categoryIcon: categoryData.icon,\n    categoryColor: categoryData.color,\n    summary: catInfo.summary,\n    importance: catInfo.importance\n  };\n});\n\n// Sort by importance for top story\nconst sortedByImportance = [...enrichedArticles].sort((a, b) => b.importance - a.importance);\nconst topStory = sortedByImportance[0];\n\n// Group by category\nconst groupedByCategory = {};\nenrichedArticles.forEach(article => {\n  if (!groupedByCategory[article.category]) {\n    groupedByCategory[article.category] = {\n      icon: article.categoryIcon,\n      color: article.categoryColor,\n      articles: []\n    };\n  }\n  groupedByCategory[article.category].articles.push(article);\n});\n\n// Sort categories by number of articles\nconst sortedCategories = Object.entries(groupedByCategory)\n  .sort((a, b) => b[1].articles.length - a[1].articles.length)\n  .reduce((acc, [key, value]) => {\n    acc[key] = value;\n    return acc;\n  }, {});\n\nreturn [{ \n  json: { \n    topStory,\n    categories: sortedCategories,\n    totalArticles: enrichedArticles.length,\n    config\n  } \n}];"
+      },
+      "id": "enrich-articles",
+      "name": "Enrich & Group Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0],
+      "notes": "Merges AI categorization, identifies top story, groups by theme"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { topStory, categories, totalArticles, config } = $input.first().json;\nconst today = new Date().toLocaleDateString('en-US', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\n// Build HTML Email with beautiful formatting\nlet htmlContent = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    * { box-sizing: border-box; }\n    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; line-height: 1.6; }\n    .container { max-width: 680px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }\n    \n    /* Header */\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }\n    .header h1 { margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; }\n    .header .subtitle { margin: 12px 0 0 0; opacity: 0.9; font-size: 16px; }\n    .header .stats { margin-top: 20px; display: inline-block; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; font-size: 14px; }\n    \n    /* Table of Contents */\n    .toc { background: #f8fafc; padding: 25px 30px; border-bottom: 1px solid #e2e8f0; }\n    .toc h3 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }\n    .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 10px; }\n    .toc-item { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: white; border-radius: 8px; font-size: 13px; color: #475569; border: 1px solid #e2e8f0; text-decoration: none; transition: all 0.2s; }\n    .toc-item:hover { border-color: #667eea; color: #667eea; }\n    .toc-count { background: #e2e8f0; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }\n    \n    /* Top Story */\n    .top-story { padding: 30px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-bottom: 1px solid #fbbf24; }\n    .top-story-badge { display: inline-flex; align-items: center; gap: 6px; background: #f59e0b; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px; }\n    .top-story h2 { margin: 0 0 12px 0; font-size: 24px; line-height: 1.3; }\n    .top-story h2 a { color: #1e293b; text-decoration: none; }\n    .top-story h2 a:hover { color: #667eea; }\n    .top-story .summary { color: #57534e; font-size: 16px; margin: 0 0 15px 0; }\n    .top-story .meta { display: flex; align-items: center; gap: 15px; font-size: 13px; color: #78716c; }\n    .top-story .category-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; }\n    \n    /* Content */\n    .content { padding: 30px; }\n    \n    /* Category Section */\n    .category-section { margin-bottom: 35px; }\n    .category-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid; }\n    .category-icon { font-size: 24px; }\n    .category-title { margin: 0; font-size: 20px; font-weight: 600; color: #1e293b; }\n    .category-count { font-size: 13px; color: #64748b; margin-left: auto; }\n    \n    /* Article Card */\n    .article { background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 4px solid; transition: transform 0.2s, box-shadow 0.2s; }\n    .article:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }\n    .article:last-child { margin-bottom: 0; }\n    .article h3 { margin: 0 0 10px 0; font-size: 16px; font-weight: 600; line-height: 1.4; }\n    .article h3 a { color: #1e293b; text-decoration: none; }\n    .article h3 a:hover { color: #667eea; }\n    .article .summary { color: #64748b; margin: 0 0 12px 0; font-size: 14px; }\n    .article .meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #94a3b8; }\n    .article .source { font-weight: 500; color: #64748b; }\n    .article .read-more { color: #667eea; text-decoration: none; font-weight: 500; margin-left: auto; }\n    .article .read-more:hover { text-decoration: underline; }\n    \n    /* Footer */\n    .footer { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 30px; text-align: center; }\n    .footer p { margin: 0 0 10px 0; font-size: 14px; opacity: 0.9; }\n    .footer .brand { font-size: 18px; font-weight: 600; margin-bottom: 15px; }\n    .footer .unsubscribe { color: #94a3b8; font-size: 12px; }\n    .footer a { color: #a5b4fc; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <!-- Header -->\n    <div class=\"header\">\n      <h1>${config.config.newsletterTitle}</h1>\n      <p class=\"subtitle\">${config.config.industryName} Industry Updates</p>\n      <p class=\"subtitle\" style=\"font-size: 14px; opacity: 0.8;\">${today}</p>\n      <div class=\"stats\">📰 ${totalArticles} articles across ${Object.keys(categories).length} categories</div>\n    </div>\n    \n    <!-- Table of Contents -->\n    <div class=\"toc\">\n      <h3>📋 In This Issue</h3>\n      <div class=\"toc-list\">\n`;\n\n// Add TOC items\nfor (const [categoryName, categoryData] of Object.entries(categories)) {\n  htmlContent += `        <a href=\"#${categoryName.toLowerCase().replace(/[^a-z]/g, '-')}\" class=\"toc-item\">\n          <span>${categoryData.icon}</span>\n          <span>${categoryName}</span>\n          <span class=\"toc-count\">${categoryData.articles.length}</span>\n        </a>\n`;\n}\n\nhtmlContent += `      </div>\n    </div>\n    \n    <!-- Top Story -->\n    <div class=\"top-story\">\n      <div class=\"top-story-badge\">⭐ Top Story</div>\n      <h2><a href=\"${topStory.url}\">${topStory.title}</a></h2>\n      <p class=\"summary\">${topStory.summary}</p>\n      <div class=\"meta\">\n        <span class=\"category-tag\" style=\"background: ${topStory.categoryColor}20; color: ${topStory.categoryColor};\">\n          ${topStory.categoryIcon} ${topStory.category}\n        </span>\n        <span>Source: ${topStory.source}</span>\n      </div>\n    </div>\n    \n    <!-- Content by Category -->\n    <div class=\"content\">\n`;\n\n// Add articles by category\nfor (const [categoryName, categoryData] of Object.entries(categories)) {\n  const categoryId = categoryName.toLowerCase().replace(/[^a-z]/g, '-');\n  \n  htmlContent += `\n      <div class=\"category-section\" id=\"${categoryId}\">\n        <div class=\"category-header\" style=\"border-color: ${categoryData.color};\">\n          <span class=\"category-icon\">${categoryData.icon}</span>\n          <h2 class=\"category-title\">${categoryName}</h2>\n          <span class=\"category-count\">${categoryData.articles.length} article${categoryData.articles.length > 1 ? 's' : ''}</span>\n        </div>\n`;\n  \n  categoryData.articles.forEach(article => {\n    const date = new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });\n    htmlContent += `\n        <div class=\"article\" style=\"border-color: ${categoryData.color};\">\n          <h3><a href=\"${article.url}\">${article.title}</a></h3>\n          <p class=\"summary\">${article.summary}</p>\n          <div class=\"meta\">\n            <span class=\"source\">${article.source}</span>\n            <span>${date}</span>\n            <a href=\"${article.url}\" class=\"read-more\">Read more →</a>\n          </div>\n        </div>\n`;\n  });\n  \n  htmlContent += `      </div>\n`;\n}\n\nhtmlContent += `\n    </div>\n    \n    <!-- Footer -->\n    <div class=\"footer\">\n      <p class=\"brand\">Curated by ${config.config.companyName}</p>\n      <p>Your daily source for ${config.config.industryName} insights</p>\n      <p class=\"unsubscribe\">You're receiving this because you subscribed to our newsletter.</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// Build Plain Text version\nlet textContent = `${'═'.repeat(50)}\\n`;\ntextContent += `${config.config.newsletterTitle.toUpperCase()}\\n`;\ntextContent += `${config.config.industryName} Industry Updates - ${today}\\n`;\ntextContent += `${'═'.repeat(50)}\\n\\n`;\n\ntextContent += `📰 ${totalArticles} articles across ${Object.keys(categories).length} categories\\n\\n`;\n\ntextContent += `${'─'.repeat(50)}\\n`;\ntextContent += `⭐ TOP STORY\\n`;\ntextContent += `${'─'.repeat(50)}\\n`;\ntextContent += `${topStory.title}\\n`;\ntextContent += `${topStory.summary}\\n`;\ntextContent += `${topStory.categoryIcon} ${topStory.category} | Source: ${topStory.source}\\n`;\ntextContent += `Read: ${topStory.url}\\n\\n`;\n\nfor (const [categoryName, categoryData] of Object.entries(categories)) {\n  textContent += `${'─'.repeat(50)}\\n`;\n  textContent += `${categoryData.icon} ${categoryName.toUpperCase()} (${categoryData.articles.length})\\n`;\n  textContent += `${'─'.repeat(50)}\\n\\n`;\n  \n  categoryData.articles.forEach((article, index) => {\n    textContent += `${index + 1}. ${article.title}\\n`;\n    textContent += `   ${article.summary}\\n`;\n    textContent += `   Source: ${article.source} | ${article.url}\\n\\n`;\n  });\n}\n\ntextContent += `${'═'.repeat(50)}\\n`;\ntextContent += `Curated by ${config.config.companyName}\\n`;\n\nreturn [{ \n  json: { \n    htmlContent, \n    textContent,\n    subject: `${config.config.newsletterTitle} - ${today}`,\n    config: config.config,\n    categories,\n    topStory\n  } \n}];"
       },
       "id": "format-email",
       "name": "Format Email Newsletter",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, -100],
-      "notes": "Creates beautiful HTML and plain text email versions"
+      "position": [1320, -150],
+      "notes": "Creates beautiful HTML email with categories, top story, and TOC"
     },
     {
       "parameters": {
-        "jsCode": "const articles = $input.first().json.articles;\nconst config = $('Load Configuration').first().json.config;\nconst today = new Date().toLocaleDateString('en-US', { \n  weekday: 'long', \n  month: 'short', \n  day: 'numeric' \n});\n\n// Build Telegram message with markdown\nlet telegramMessage = `*${config.newsletterTitle}*\\n`;\ntelegramMessage += `_${config.industryName} Updates - ${today}_\\n`;\ntelegramMessage += '━'.repeat(20) + '\\n\\n';\n\narticles.slice(0, 5).forEach((article, index) => {\n  // Escape special markdown characters\n  const title = article.title\n    .replace(/[_*\\[\\]()~`>#+=|{}.!-]/g, '\\\\$&');\n  \n  telegramMessage += `*${index + 1}.* [${title}](${article.url})\\n`;\n  telegramMessage += `   _${article.source}_\\n\\n`;\n});\n\nif (articles.length > 5) {\n  telegramMessage += `\\n📰 _+${articles.length - 5} more articles in your email_\\n`;\n}\n\ntelegramMessage += '\\n━'.repeat(20);\ntelegramMessage += `\\n_Curated by ${config.companyName}_`;\n\nreturn [{ \n  json: { \n    telegramMessage,\n    chatId: config.telegramChatId \n  } \n}];"
+        "jsCode": "const { topStory, categories, config } = $input.first().json;\nconst today = new Date().toLocaleDateString('en-US', { \n  weekday: 'long', \n  month: 'short', \n  day: 'numeric' \n});\n\n// Escape MarkdownV2 special characters\nconst escapeMarkdown = (text) => {\n  return text.replace(/[_*\\[\\]()~`>#+=|{}.!-]/g, '\\\\$&');\n};\n\n// Build Telegram message with beautiful formatting\nlet msg = `*${escapeMarkdown(config.config.newsletterTitle)}*\\n`;\nmsg += `_${escapeMarkdown(config.config.industryName)} Updates \\\\- ${escapeMarkdown(today)}_\\n`;\nmsg += '━━━━━━━━━━━━━━━━━━━━\\n\\n';\n\n// Top Story\nmsg += `⭐ *TOP STORY*\\n`;\nmsg += `${topStory.categoryIcon} [${escapeMarkdown(topStory.title)}](${topStory.url})\\n`;\nmsg += `_${escapeMarkdown(topStory.summary)}_\\n`;\nmsg += `_Source: ${escapeMarkdown(topStory.source)}_\\n\\n`;\nmsg += '━━━━━━━━━━━━━━━━━━━━\\n\\n';\n\n// Categories with top articles\nlet articleCount = 0;\nconst maxArticles = 8;\n\nfor (const [categoryName, categoryData] of Object.entries(categories)) {\n  if (articleCount >= maxArticles) break;\n  \n  msg += `${categoryData.icon} *${escapeMarkdown(categoryName)}*\\n`;\n  \n  const articlesToShow = categoryData.articles.slice(0, 2);\n  articlesToShow.forEach(article => {\n    if (articleCount >= maxArticles) return;\n    \n    const title = escapeMarkdown(article.title.substring(0, 60) + (article.title.length > 60 ? '...' : ''));\n    msg += `  • [${title}](${article.url})\\n`;\n    articleCount++;\n  });\n  \n  msg += '\\n';\n}\n\n// Total count\nconst totalArticles = Object.values(categories).reduce((sum, cat) => sum + cat.articles.length, 0);\nif (totalArticles > maxArticles) {\n  msg += `\\n📧 _\\\\+${totalArticles - maxArticles} more articles in your email_\\n`;\n}\n\nmsg += '\\n━━━━━━━━━━━━━━━━━━━━';\nmsg += `\\n_Curated by ${escapeMarkdown(config.config.companyName)}_`;\n\nreturn [{ \n  json: { \n    telegramMessage: msg,\n    chatId: config.config.telegramChatId \n  } \n}];"
       },
       "id": "format-telegram",
       "name": "Format Telegram Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 100],
-      "notes": "Creates formatted Telegram message with top 5 articles"
+      "position": [1320, 100],
+      "notes": "Creates formatted Telegram message with categories and top story"
     },
     {
       "parameters": {
@@ -126,7 +170,7 @@
       "name": "Prepare Email Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, -100]
+      "position": [1540, -150]
     },
     {
       "parameters": {
@@ -142,7 +186,7 @@
       "name": "Send Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1320, -100],
+      "position": [1760, -150],
       "credentials": {
         "smtp": {
           "id": "smtp-credentials",
@@ -164,7 +208,7 @@
       "name": "Send Telegram",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1100, 100],
+      "position": [1540, 100],
       "credentials": {
         "telegramApi": {
           "id": "telegram-credentials",
@@ -175,14 +219,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// Log successful execution\nconst emailResult = $('Send Email').first();\nconst telegramResult = $('Send Telegram').first();\n\nconst summary = {\n  status: 'success',\n  timestamp: new Date().toISOString(),\n  emailSent: !!emailResult,\n  telegramSent: !!telegramResult,\n  articlesProcessed: $('Process & Merge News').first().json.count\n};\n\nconsole.log('Newsletter sent successfully:', JSON.stringify(summary));\n\nreturn [{ json: summary }];"
+        "jsCode": "// Log successful execution\nconst emailResult = $('Send Email').first();\nconst telegramResult = $('Send Telegram').first();\nconst formatted = $('Format Email Newsletter').first().json;\n\nconst summary = {\n  status: 'success',\n  timestamp: new Date().toISOString(),\n  emailSent: !!emailResult,\n  telegramSent: !!telegramResult,\n  articlesProcessed: formatted.categories ? Object.values(formatted.categories).reduce((sum, cat) => sum + cat.articles.length, 0) : 0,\n  categoriesUsed: formatted.categories ? Object.keys(formatted.categories).length : 0,\n  topStory: formatted.topStory?.title || 'N/A'\n};\n\nconsole.log('Newsletter sent successfully:', JSON.stringify(summary, null, 2));\n\nreturn [{ json: summary }];"
       },
       "id": "log-success",
       "name": "Log Success",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 0],
-      "notes": "Logs successful newsletter delivery"
+      "position": [1980, 0],
+      "notes": "Logs successful newsletter delivery with stats"
     },
     {
       "parameters": {
@@ -220,19 +264,8 @@
       "name": "No Articles Today",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [880, 250],
+      "position": [1100, 200],
       "notes": "Placeholder when no articles are found"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Error handling and retry logic\nconst error = $input.first().json;\n\nconst errorLog = {\n  status: 'error',\n  timestamp: new Date().toISOString(),\n  errorMessage: error.message || 'Unknown error occurred',\n  errorDetails: error\n};\n\nconsole.error('Newsletter failed:', JSON.stringify(errorLog));\n\n// You can add alerting logic here (e.g., send to Slack, PagerDuty, etc.)\n\nreturn [{ json: errorLog }];"
-      },
-      "id": "error-handler",
-      "name": "Error Handler",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1320, 250],
-      "notes": "Handles and logs errors"
     },
     {
       "parameters": {
@@ -322,12 +355,7 @@
       "main": [
         [
           {
-            "node": "Format Email Newsletter",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Format Telegram Message",
+            "node": "AI Categorize & Summarize",
             "type": "main",
             "index": 0
           }
@@ -335,6 +363,33 @@
         [
           {
             "node": "No Articles Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Categorize & Summarize": {
+      "main": [
+        [
+          {
+            "node": "Enrich & Group Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich & Group Articles": {
+      "main": [
+        [
+          {
+            "node": "Format Email Newsletter",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Telegram Message",
             "type": "main",
             "index": 0
           }
@@ -415,11 +470,11 @@
       "id": "2"
     },
     {
-      "name": "daily",
+      "name": "ai-powered",
       "id": "3"
     }
   ],
   "triggerCount": 1,
   "updatedAt": "2026-01-18T00:00:00.000Z",
-  "versionId": "1"
+  "versionId": "2"
 }
