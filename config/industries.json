@@ -1,0 +1,118 @@
+{
+  "industries": {
+    "technology": {
+      "name": "Technology",
+      "keywords": "artificial intelligence, machine learning, software development, cloud computing, cybersecurity, startups, tech industry",
+      "rssFeeds": [
+        "https://feeds.feedburner.com/TechCrunch/",
+        "https://www.theverge.com/rss/index.xml",
+        "https://feeds.arstechnica.com/arstechnica/technology-lab",
+        "https://www.wired.com/feed/rss"
+      ],
+      "newsletterTitle": "Tech Daily Digest"
+    },
+    "finance": {
+      "name": "Finance & Banking",
+      "keywords": "fintech, banking, cryptocurrency, stock market, investment, financial services, blockchain",
+      "rssFeeds": [
+        "https://www.ft.com/rss/home",
+        "https://feeds.bloomberg.com/markets/news.rss",
+        "https://www.coindesk.com/arc/outboundfeeds/rss/"
+      ],
+      "newsletterTitle": "Finance Morning Brief"
+    },
+    "healthcare": {
+      "name": "Healthcare & Pharma",
+      "keywords": "healthcare, pharmaceutical, biotech, medical devices, digital health, FDA, clinical trials",
+      "rssFeeds": [
+        "https://www.fiercehealthcare.com/rss/xml",
+        "https://www.fiercepharma.com/rss/xml",
+        "https://www.healthcareitnews.com/feed"
+      ],
+      "newsletterTitle": "Healthcare Industry Update"
+    },
+    "ecommerce": {
+      "name": "E-commerce & Retail",
+      "keywords": "e-commerce, retail technology, online shopping, supply chain, logistics, Amazon, Shopify",
+      "rssFeeds": [
+        "https://www.retaildive.com/feeds/news/",
+        "https://www.ecommercetimes.com/perl/syndication/rssfull.pl"
+      ],
+      "newsletterTitle": "E-commerce Daily"
+    },
+    "manufacturing": {
+      "name": "Manufacturing & Industry 4.0",
+      "keywords": "manufacturing, industrial automation, IoT, smart factory, robotics, supply chain",
+      "rssFeeds": [
+        "https://www.industryweek.com/rss.xml",
+        "https://www.automationworld.com/rss.xml"
+      ],
+      "newsletterTitle": "Manufacturing Insights"
+    },
+    "energy": {
+      "name": "Energy & Sustainability",
+      "keywords": "renewable energy, solar, wind, electric vehicles, sustainability, clean tech, oil gas",
+      "rssFeeds": [
+        "https://www.greentechmedia.com/feed/",
+        "https://cleantechnica.com/feed/"
+      ],
+      "newsletterTitle": "Energy & Green Tech Daily"
+    },
+    "realestate": {
+      "name": "Real Estate & PropTech",
+      "keywords": "real estate, proptech, property technology, commercial real estate, housing market",
+      "rssFeeds": [
+        "https://www.bisnow.com/feed"
+      ],
+      "newsletterTitle": "Real Estate Market Update"
+    },
+    "marketing": {
+      "name": "Marketing & AdTech",
+      "keywords": "digital marketing, advertising technology, social media marketing, SEO, content marketing",
+      "rssFeeds": [
+        "https://feeds.feedburner.com/Mashable",
+        "https://www.adweek.com/feed/"
+      ],
+      "newsletterTitle": "Marketing Daily Roundup"
+    }
+  },
+  "scheduleOptions": {
+    "earlyMorning": {
+      "hour": 6,
+      "minute": 0,
+      "description": "6:00 AM - Early birds"
+    },
+    "morning": {
+      "hour": 7,
+      "minute": 30,
+      "description": "7:30 AM - Standard morning delivery"
+    },
+    "businessHours": {
+      "hour": 9,
+      "minute": 0,
+      "description": "9:00 AM - Start of business day"
+    },
+    "midday": {
+      "hour": 12,
+      "minute": 0,
+      "description": "12:00 PM - Lunch break reading"
+    }
+  },
+  "emailTemplates": {
+    "professional": {
+      "primaryColor": "#667eea",
+      "secondaryColor": "#764ba2",
+      "fontFamily": "Segoe UI, Tahoma, Geneva, Verdana, sans-serif"
+    },
+    "minimal": {
+      "primaryColor": "#333333",
+      "secondaryColor": "#666666",
+      "fontFamily": "Georgia, serif"
+    },
+    "modern": {
+      "primaryColor": "#00D4FF",
+      "secondaryColor": "#7B2FF7",
+      "fontFamily": "Inter, system-ui, sans-serif"
+    }
+  }
+}

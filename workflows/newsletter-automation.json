@@ -1,0 +1,425 @@
+{
+  "name": "Industry Newsletter Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Morning Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "notes": "Triggers every morning at 7:00 AM"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.config.newsApiUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.config.industryKeywords }}"
+            },
+            {
+              "name": "from",
+              "value": "={{ $today.minus({days: 1}).toISODate() }}"
+            },
+            {
+              "name": "sortBy",
+              "value": "relevancy"
+            },
+            {
+              "name": "pageSize",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-news-api",
+      "name": "Fetch News API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, -100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "newsapi-credentials",
+          "name": "NewsAPI Credentials"
+        }
+      },
+      "notes": "Fetches latest industry news from NewsAPI"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.config.rssFeeds }}",
+        "options": {}
+      },
+      "id": "fetch-rss",
+      "name": "Fetch RSS Feeds",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [440, 100],
+      "notes": "Fetches content from industry RSS feeds"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Load configuration from environment or static config\nconst config = {\n  industryName: $env.INDUSTRY_NAME || 'Technology',\n  industryKeywords: $env.INDUSTRY_KEYWORDS || 'AI, machine learning, software development',\n  newsApiUrl: 'https://newsapi.org/v2/everything',\n  rssFeeds: $env.RSS_FEEDS || 'https://feeds.feedburner.com/TechCrunch/',\n  emailRecipients: $env.EMAIL_RECIPIENTS || 'team@company.com',\n  telegramChatId: $env.TELEGRAM_CHAT_ID || '',\n  companyName: $env.COMPANY_NAME || 'Your Company',\n  newsletterTitle: $env.NEWSLETTER_TITLE || 'Daily Industry Digest'\n};\n\nreturn [{ json: { config } }];"
+      },
+      "id": "load-config",
+      "name": "Load Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "notes": "Loads newsletter configuration from environment variables"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine and process news from all sources\nconst newsApiData = $input.first().json?.articles || [];\nconst rssData = $input.all().slice(1).map(item => item.json) || [];\n\n// Normalize news items\nconst allNews = [];\n\n// Process NewsAPI articles\nnewsApiData.forEach(article => {\n  allNews.push({\n    title: article.title,\n    description: article.description || '',\n    url: article.url,\n    source: article.source?.name || 'NewsAPI',\n    publishedAt: article.publishedAt,\n    imageUrl: article.urlToImage || ''\n  });\n});\n\n// Process RSS items\nrssData.forEach(item => {\n  allNews.push({\n    title: item.title,\n    description: item.contentSnippet || item.content || '',\n    url: item.link,\n    source: item.creator || 'RSS Feed',\n    publishedAt: item.pubDate || item.isoDate,\n    imageUrl: item.enclosure?.url || ''\n  });\n});\n\n// Sort by date and take top 10\nconst sortedNews = allNews\n  .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))\n  .slice(0, 10);\n\nreturn [{ json: { articles: sortedNews, count: sortedNews.length } }];"
+      },
+      "id": "process-news",
+      "name": "Process & Merge News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "notes": "Combines news from multiple sources and normalizes format"
+    },
+    {
+      "parameters": {
+        "jsCode": "const articles = $input.first().json.articles;\nconst config = $('Load Configuration').first().json.config;\nconst today = new Date().toLocaleDateString('en-US', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\n// Build HTML Email\nlet htmlContent = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }\n    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }\n    .header h1 { margin: 0; font-size: 28px; }\n    .header p { margin: 10px 0 0 0; opacity: 0.9; }\n    .content { padding: 30px; }\n    .article { border-bottom: 1px solid #eee; padding: 20px 0; }\n    .article:last-child { border-bottom: none; }\n    .article h2 { margin: 0 0 10px 0; font-size: 18px; }\n    .article h2 a { color: #333; text-decoration: none; }\n    .article h2 a:hover { color: #667eea; }\n    .article p { color: #666; margin: 0 0 10px 0; font-size: 14px; line-height: 1.6; }\n    .article .meta { color: #999; font-size: 12px; }\n    .footer { background: #f9f9f9; padding: 20px; text-align: center; color: #999; font-size: 12px; }\n    .btn { display: inline-block; background: #667eea; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 10px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>${config.newsletterTitle}</h1>\n      <p>${config.industryName} Industry Updates - ${today}</p>\n    </div>\n    <div class=\"content\">\n`;\n\narticles.forEach((article, index) => {\n  const date = new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });\n  htmlContent += `\n      <div class=\"article\">\n        <h2><a href=\"${article.url}\">${article.title}</a></h2>\n        <p>${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}</p>\n        <div class=\"meta\">Source: ${article.source} | ${date}</div>\n      </div>\n`;\n});\n\nhtmlContent += `\n    </div>\n    <div class=\"footer\">\n      <p>Curated by ${config.companyName}</p>\n      <p>You're receiving this because you subscribed to our ${config.industryName} newsletter.</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// Build Plain Text version\nlet textContent = `${config.newsletterTitle}\\n`;\ntextContent += `${config.industryName} Industry Updates - ${today}\\n`;\ntextContent += '='.repeat(50) + '\\n\\n';\n\narticles.forEach((article, index) => {\n  textContent += `${index + 1}. ${article.title}\\n`;\n  textContent += `   ${article.description.substring(0, 150)}...\\n`;\n  textContent += `   Read more: ${article.url}\\n`;\n  textContent += `   Source: ${article.source}\\n\\n`;\n});\n\ntextContent += '---\\n';\ntextContent += `Curated by ${config.companyName}\\n`;\n\nreturn [{ \n  json: { \n    htmlContent, \n    textContent,\n    subject: `${config.newsletterTitle} - ${today}`,\n    config \n  } \n}];"
+      },
+      "id": "format-email",
+      "name": "Format Email Newsletter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -100],
+      "notes": "Creates beautiful HTML and plain text email versions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const articles = $input.first().json.articles;\nconst config = $('Load Configuration').first().json.config;\nconst today = new Date().toLocaleDateString('en-US', { \n  weekday: 'long', \n  month: 'short', \n  day: 'numeric' \n});\n\n// Build Telegram message with markdown\nlet telegramMessage = `*${config.newsletterTitle}*\\n`;\ntelegramMessage += `_${config.industryName} Updates - ${today}_\\n`;\ntelegramMessage += '━'.repeat(20) + '\\n\\n';\n\narticles.slice(0, 5).forEach((article, index) => {\n  // Escape special markdown characters\n  const title = article.title\n    .replace(/[_*\\[\\]()~`>#+=|{}.!-]/g, '\\\\$&');\n  \n  telegramMessage += `*${index + 1}.* [${title}](${article.url})\\n`;\n  telegramMessage += `   _${article.source}_\\n\\n`;\n});\n\nif (articles.length > 5) {\n  telegramMessage += `\\n📰 _+${articles.length - 5} more articles in your email_\\n`;\n}\n\ntelegramMessage += '\\n━'.repeat(20);\ntelegramMessage += `\\n_Curated by ${config.companyName}_`;\n\nreturn [{ \n  json: { \n    telegramMessage,\n    chatId: config.telegramChatId \n  } \n}];"
+      },
+      "id": "format-telegram",
+      "name": "Format Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 100],
+      "notes": "Creates formatted Telegram message with top 5 articles"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $input.item.json;\n\nreturn {\n  to: data.config.emailRecipients,\n  subject: data.subject,\n  html: data.htmlContent,\n  text: data.textContent\n};"
+      },
+      "id": "prepare-email-data",
+      "name": "Prepare Email Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, -100]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1320, -100],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-credentials",
+          "name": "SMTP Credentials"
+        }
+      },
+      "notes": "Sends the newsletter via email"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.telegramMessage }}",
+        "additionalFields": {
+          "parse_mode": "MarkdownV2",
+          "disable_web_page_preview": false
+        }
+      },
+      "id": "send-telegram",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 100],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-credentials",
+          "name": "Telegram Bot Credentials"
+        }
+      },
+      "notes": "Sends newsletter summary to Telegram channel/group"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log successful execution\nconst emailResult = $('Send Email').first();\nconst telegramResult = $('Send Telegram').first();\n\nconst summary = {\n  status: 'success',\n  timestamp: new Date().toISOString(),\n  emailSent: !!emailResult,\n  telegramSent: !!telegramResult,\n  articlesProcessed: $('Process & Merge News').first().json.count\n};\n\nconsole.log('Newsletter sent successfully:', JSON.stringify(summary));\n\nreturn [{ json: summary }];"
+      },
+      "id": "log-success",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 0],
+      "notes": "Logs successful newsletter delivery"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-articles",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-has-articles",
+      "name": "Has Articles?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [770, 0],
+      "notes": "Only proceed if we have articles to send"
+    },
+    {
+      "parameters": {},
+      "id": "no-articles-today",
+      "name": "No Articles Today",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [880, 250],
+      "notes": "Placeholder when no articles are found"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handling and retry logic\nconst error = $input.first().json;\n\nconst errorLog = {\n  status: 'error',\n  timestamp: new Date().toISOString(),\n  errorMessage: error.message || 'Unknown error occurred',\n  errorDetails: error\n};\n\nconsole.error('Newsletter failed:', JSON.stringify(errorLog));\n\n// You can add alerting logic here (e.g., send to Slack, PagerDuty, etc.)\n\nreturn [{ json: errorLog }];"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 250],
+      "notes": "Handles and logs errors"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "merge-sources",
+      "name": "Merge Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [550, 0],
+      "notes": "Merges NewsAPI and RSS feed results"
+    }
+  ],
+  "connections": {
+    "Morning Schedule": {
+      "main": [
+        [
+          {
+            "node": "Load Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Configuration": {
+      "main": [
+        [
+          {
+            "node": "Fetch News API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch News API": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "Merge Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Sources": {
+      "main": [
+        [
+          {
+            "node": "Process & Merge News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Merge News": {
+      "main": [
+        [
+          {
+            "node": "Has Articles?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Articles?": {
+      "main": [
+        [
+          {
+            "node": "Format Email Newsletter",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Articles Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email Newsletter": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "newsletter",
+      "id": "1"
+    },
+    {
+      "name": "automation",
+      "id": "2"
+    },
+    {
+      "name": "daily",
+      "id": "3"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-01-18T00:00:00.000Z",
+  "versionId": "1"
+}
