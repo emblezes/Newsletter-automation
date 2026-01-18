@@ -1,0 +1,571 @@
+{
+  "name": "Newsletter SaaS - Main Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "newsletter/send",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook: Send Newsletter",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "newsletter-send",
+      "notes": "POST /newsletter/send - Triggered by client or scheduler"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Hourly Schedule Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "notes": "Runs every hour to check for scheduled newsletters"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate API key and extract client info from webhook\nconst headers = $input.first().json.headers || {};\nconst body = $input.first().json.body || {};\n\nconst apiKey = headers['x-api-key'] || headers['authorization']?.replace('Bearer ', '');\n\nif (!apiKey) {\n  throw new Error('Missing API key. Include X-API-Key header.');\n}\n\n// Extract newsletter_id from request\nconst newsletterId = body.newsletter_id;\nif (!newsletterId) {\n  throw new Error('Missing newsletter_id in request body.');\n}\n\nreturn [{\n  json: {\n    apiKey,\n    newsletterId,\n    triggerType: 'api',\n    requestBody: body\n  }\n}];"
+      },
+      "id": "validate-webhook",
+      "name": "Validate API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "notes": "Validates the API key from webhook request"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  n.*,\n  c.id as client_id,\n  c.company_name,\n  c.plan,\n  c.is_active as client_active,\n  c.emails_per_month,\n  nb.title as branding_title,\n  nb.subtitle as branding_subtitle,\n  nb.logo_url,\n  nb.primary_color,\n  nb.secondary_color,\n  nb.footer_text\nFROM newsletters n\nJOIN clients c ON n.client_id = c.id\nLEFT JOIN newsletter_branding nb ON nb.newsletter_id = n.id\nWHERE c.api_key = '{{ $json.apiKey }}'\n  AND n.id = '{{ $json.newsletterId }}'\n  AND n.is_active = true\n  AND c.is_active = true\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "get-newsletter-by-api",
+      "name": "Get Newsletter (API)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 0],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-db",
+          "name": "Supabase PostgreSQL"
+        }
+      },
+      "notes": "Fetches newsletter config by API key"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  n.*,\n  c.id as client_id,\n  c.company_name,\n  c.plan,\n  c.is_active as client_active,\n  c.emails_per_month,\n  nb.title as branding_title,\n  nb.subtitle as branding_subtitle,\n  nb.logo_url,\n  nb.primary_color,\n  nb.secondary_color,\n  nb.footer_text\nFROM newsletters n\nJOIN clients c ON n.client_id = c.id\nLEFT JOIN newsletter_branding nb ON nb.newsletter_id = n.id\nWHERE n.is_active = true\n  AND n.schedule_enabled = true\n  AND c.is_active = true\n  AND EXTRACT(HOUR FROM NOW() AT TIME ZONE n.schedule_timezone) = n.schedule_hour\n  AND EXTRACT(MINUTE FROM NOW() AT TIME ZONE n.schedule_timezone) BETWEEN n.schedule_minute AND n.schedule_minute + 4\n  AND EXTRACT(DOW FROM NOW() AT TIME ZONE n.schedule_timezone)::int = ANY(n.schedule_days);",
+        "options": {}
+      },
+      "id": "get-scheduled-newsletters",
+      "name": "Get Scheduled Newsletters",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [220, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-db",
+          "name": "Supabase PostgreSQL"
+        }
+      },
+      "notes": "Fetches all newsletters due to be sent now"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "has-newsletter",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-newsletter-found",
+      "name": "Newsletter Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "notes": "Checks if newsletter was found with valid API key"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return error response for webhook\nreturn [{\n  json: {\n    success: false,\n    error: 'Newsletter not found or unauthorized',\n    code: 'UNAUTHORIZED'\n  }\n}];"
+      },
+      "id": "error-unauthorized",
+      "name": "Error: Unauthorized",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 100]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "loop-newsletters",
+      "name": "Loop Newsletters",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [440, 300],
+      "notes": "Process each scheduled newsletter"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge newsletter data from API or Schedule path\nconst newsletter = $input.first().json;\nconst triggerType = $('Validate API Key').first()?.json?.triggerType || 'scheduled';\n\nreturn [{\n  json: {\n    newsletter: {\n      id: newsletter.id,\n      clientId: newsletter.client_id,\n      name: newsletter.name,\n      industry: newsletter.industry,\n      maxArticles: newsletter.max_articles || 12,\n      aiSummaries: newsletter.ai_summaries_enabled !== false\n    },\n    branding: {\n      title: newsletter.branding_title || newsletter.name,\n      subtitle: newsletter.branding_subtitle || `${newsletter.industry} Updates`,\n      logoUrl: newsletter.logo_url || '',\n      primaryColor: newsletter.primary_color || '#667eea',\n      secondaryColor: newsletter.secondary_color || '#764ba2',\n      footerText: newsletter.footer_text || `Curated by ${newsletter.company_name}`\n    },\n    client: {\n      id: newsletter.client_id,\n      companyName: newsletter.company_name,\n      plan: newsletter.plan\n    },\n    triggerType,\n    startTime: Date.now()\n  }\n}];"
+      },
+      "id": "prepare-newsletter",
+      "name": "Prepare Newsletter Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -100],
+      "notes": "Prepares unified newsletter object"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT * FROM newsletter_sources WHERE newsletter_id = '{{ $json.newsletter.id }}' AND is_active = true;",
+        "options": {}
+      },
+      "id": "get-sources",
+      "name": "Get Sources",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1100, -200],
+      "credentials": {
+        "postgres": { "id": "supabase-db", "name": "Supabase PostgreSQL" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT * FROM newsletter_categories WHERE newsletter_id = '{{ $json.newsletter.id }}' ORDER BY sort_order;",
+        "options": {}
+      },
+      "id": "get-categories",
+      "name": "Get Categories",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1100, 0],
+      "credentials": {
+        "postgres": { "id": "supabase-db", "name": "Supabase PostgreSQL" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT * FROM newsletter_channels WHERE newsletter_id = '{{ $json.newsletter.id }}' AND is_enabled = true;",
+        "options": {}
+      },
+      "id": "get-channels",
+      "name": "Get Channels",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1100, 200],
+      "credentials": {
+        "postgres": { "id": "supabase-db", "name": "Supabase PostgreSQL" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT email, name FROM newsletter_recipients WHERE newsletter_id = '{{ $json.newsletter.id }}' AND is_active = true;",
+        "options": {}
+      },
+      "id": "get-recipients",
+      "name": "Get Recipients",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1100, 400],
+      "credentials": {
+        "postgres": { "id": "supabase-db", "name": "Supabase PostgreSQL" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge all newsletter configuration\nconst baseData = $('Prepare Newsletter Data').first().json;\nconst sources = $('Get Sources').all().map(i => i.json);\nconst categories = $('Get Categories').all().map(i => i.json);\nconst channels = $('Get Channels').all().map(i => i.json);\nconst recipients = $('Get Recipients').all().map(i => i.json);\n\n// Build categories object\nconst categoriesObj = {};\ncategories.forEach(cat => {\n  categoriesObj[cat.name] = {\n    icon: cat.icon || '📰',\n    color: cat.color || '#6B7280',\n    keywords: cat.keywords || []\n  };\n});\n\n// Add 'Other' category if not exists\nif (!categoriesObj['Other']) {\n  categoriesObj['Other'] = { icon: '📰', color: '#6B7280', keywords: [] };\n}\n\n// Extract source configs\nconst rssFeeds = sources.filter(s => s.source_type === 'rss').map(s => s.source_url);\nconst newsApiKeywords = sources\n  .filter(s => s.source_type === 'newsapi')\n  .flatMap(s => s.keywords || []);\nconst excludeKeywords = sources.flatMap(s => s.exclude_keywords || []);\n\nreturn [{\n  json: {\n    ...baseData,\n    sources: {\n      rssFeeds,\n      newsApiKeywords: newsApiKeywords.join(', '),\n      excludeKeywords: [...new Set(excludeKeywords)]\n    },\n    categories: categoriesObj,\n    channels,\n    recipients\n  }\n}];"
+      },
+      "id": "merge-config",
+      "name": "Merge Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 0],
+      "notes": "Merges all newsletter configuration"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://newsapi.org/v2/everything",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "={{ $json.sources.newsApiKeywords }}" },
+            { "name": "from", "value": "={{ $today.minus({days: 1}).toISODate() }}" },
+            { "name": "sortBy", "value": "relevancy" },
+            { "name": "pageSize", "value": "={{ $json.newsletter.maxArticles }}" }
+          ]
+        },
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "fetch-newsapi",
+      "name": "Fetch NewsAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, -100],
+      "credentials": {
+        "httpHeaderAuth": { "id": "newsapi-credentials", "name": "NewsAPI Credentials" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch RSS feeds\nconst config = $('Merge Configuration').first().json;\nconst rssFeeds = config.sources.rssFeeds || [];\n\nif (rssFeeds.length === 0) {\n  return [{ json: { items: [] } }];\n}\n\n// Return feeds for RSS node\nreturn rssFeeds.map(url => ({ json: { feedUrl: url } }));"
+      },
+      "id": "prepare-rss",
+      "name": "Prepare RSS Feeds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 100]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.feedUrl }}",
+        "options": {}
+      },
+      "id": "fetch-rss",
+      "name": "Fetch RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [1760, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process and merge all news sources\nconst config = $('Merge Configuration').first().json;\nconst newsApiResult = $('Fetch NewsAPI').first()?.json || {};\nconst rssItems = $('Fetch RSS').all().map(i => i.json);\n\nconst articles = [];\nconst excludeKeywords = config.sources.excludeKeywords || [];\n\n// Process NewsAPI\n(newsApiResult.articles || []).forEach(article => {\n  const text = (article.title + ' ' + (article.description || '')).toLowerCase();\n  if (excludeKeywords.some(kw => text.includes(kw.toLowerCase()))) return;\n  \n  articles.push({\n    title: article.title,\n    description: article.description || '',\n    url: article.url,\n    source: article.source?.name || 'NewsAPI',\n    publishedAt: article.publishedAt,\n    imageUrl: article.urlToImage || ''\n  });\n});\n\n// Process RSS\nrssItems.forEach(item => {\n  if (!item.title) return;\n  const text = (item.title + ' ' + (item.contentSnippet || '')).toLowerCase();\n  if (excludeKeywords.some(kw => text.includes(kw.toLowerCase()))) return;\n  \n  articles.push({\n    title: item.title,\n    description: item.contentSnippet || item.content || '',\n    url: item.link,\n    source: item.creator || 'RSS',\n    publishedAt: item.pubDate || item.isoDate,\n    imageUrl: item.enclosure?.url || ''\n  });\n});\n\n// Dedupe & sort\nconst seen = new Set();\nconst unique = articles.filter(a => {\n  const key = a.title.toLowerCase().substring(0, 50);\n  if (seen.has(key)) return false;\n  seen.add(key);\n  return true;\n});\n\nconst sorted = unique\n  .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))\n  .slice(0, config.newsletter.maxArticles);\n\nreturn [{ json: { ...config, articles: sorted, articleCount: sorted.length } }];"
+      },
+      "id": "process-articles",
+      "name": "Process Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 0],
+      "notes": "Merges and deduplicates all articles"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "has-articles",
+              "leftValue": "={{ $json.articleCount }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-articles",
+      "name": "Has Articles?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2200, 0]
+    },
+    {
+      "parameters": {
+        "modelId": { "__rl": true, "value": "gpt-4o-mini", "mode": "list" },
+        "messages": {
+          "values": [{
+            "content": "=Categorize these {{ $json.newsletter.industry }} articles.\n\nCategories: {{ Object.keys($json.categories).join(', ') }}\n\nFor each: assign ONE category, write 1-sentence summary (max 100 chars), score importance 1-10.\n\nArticles: {{ JSON.stringify($json.articles.map((a,i) => ({id:i, title:a.title, desc:a.description?.substring(0,150)}))) }}\n\nRespond JSON only: {\"categorized\":[{\"id\":0,\"category\":\"Name\",\"summary\":\"...\",\"importance\":8},...]}"
+          }]
+        },
+        "options": { "temperature": 0.3, "maxTokens": 2000 }
+      },
+      "id": "ai-categorize",
+      "name": "AI Categorize",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [2420, -100],
+      "credentials": {
+        "openAiApi": { "id": "openai-credentials", "name": "OpenAI" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enrich articles with AI categorization\nconst data = $('Has Articles?').first().json;\nconst aiResponse = $input.first().json.message?.content || '{\"categorized\":[]}';\n\nlet categorized = [];\ntry {\n  categorized = JSON.parse(aiResponse.replace(/```json\\n?|```/g, '').trim()).categorized || [];\n} catch (e) {\n  // Fallback to keyword matching\n  categorized = data.articles.map((a, i) => {\n    const text = (a.title + ' ' + a.description).toLowerCase();\n    let cat = 'Other';\n    for (const [name, c] of Object.entries(data.categories)) {\n      if (c.keywords?.some(kw => text.includes(kw))) { cat = name; break; }\n    }\n    return { id: i, category: cat, summary: a.description?.substring(0, 100), importance: 5 };\n  });\n}\n\n// Enrich articles\nconst enriched = data.articles.map((article, i) => {\n  const cat = categorized.find(c => c.id === i) || { category: 'Other', summary: article.description?.substring(0, 100), importance: 5 };\n  const catData = data.categories[cat.category] || data.categories['Other'];\n  return { ...article, category: cat.category, categoryIcon: catData.icon, categoryColor: catData.color, summary: cat.summary, importance: cat.importance };\n});\n\n// Group by category\nconst grouped = {};\nenriched.forEach(a => {\n  if (!grouped[a.category]) grouped[a.category] = { icon: a.categoryIcon, color: a.categoryColor, articles: [] };\n  grouped[a.category].articles.push(a);\n});\n\n// Top story\nconst topStory = [...enriched].sort((a, b) => b.importance - a.importance)[0];\n\nreturn [{ json: { ...data, topStory, groupedArticles: grouped, enrichedArticles: enriched } }];"
+      },
+      "id": "enrich-articles",
+      "name": "Enrich Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate HTML email with client branding\nconst d = $input.first().json;\nconst today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\n\nlet html = `<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<style>\n*{box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f0f4f8;margin:0;padding:20px;line-height:1.6}\n.container{max-width:680px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)}\n.header{background:linear-gradient(135deg,${d.branding.primaryColor} 0%,${d.branding.secondaryColor} 100%);color:#fff;padding:40px 30px;text-align:center}\n.header h1{margin:0;font-size:28px}.header .sub{margin:10px 0 0;opacity:.9;font-size:15px}.header .stats{margin-top:20px;background:rgba(255,255,255,.2);padding:8px 20px;border-radius:20px;display:inline-block;font-size:14px}\n.toc{background:#f8fafc;padding:25px 30px;border-bottom:1px solid #e2e8f0}.toc h3{margin:0 0 15px;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#64748b}\n.toc-list{display:flex;flex-wrap:wrap;gap:10px}.toc-item{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border-radius:8px;font-size:13px;color:#475569;border:1px solid #e2e8f0}\n.toc-count{background:#e2e8f0;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}\n.top-story{padding:30px;background:linear-gradient(135deg,#fef3c7,#fde68a)}.top-story-badge{background:#f59e0b;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;display:inline-block;margin-bottom:15px}\n.top-story h2{margin:0 0 12px;font-size:22px;line-height:1.3}.top-story h2 a{color:#1e293b;text-decoration:none}.top-story .summary{color:#57534e;font-size:15px;margin:0 0 15px}.top-story .meta{font-size:13px;color:#78716c}\n.content{padding:30px}.cat-section{margin-bottom:30px}.cat-header{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid}.cat-icon{font-size:22px}.cat-title{margin:0;font-size:18px;font-weight:600;color:#1e293b}.cat-count{font-size:13px;color:#64748b;margin-left:auto}\n.article{background:#f8fafc;border-radius:12px;padding:18px;margin-bottom:12px;border-left:4px solid}.article h3{margin:0 0 8px;font-size:15px;font-weight:600;line-height:1.4}.article h3 a{color:#1e293b;text-decoration:none}.article .summary{color:#64748b;margin:0 0 10px;font-size:13px}.article .meta{font-size:12px;color:#94a3b8;display:flex;gap:12px}.article .read{color:${d.branding.primaryColor};text-decoration:none;font-weight:500;margin-left:auto}\n.footer{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;padding:30px;text-align:center}.footer p{margin:0 0 8px;font-size:14px;opacity:.9}.footer .brand{font-size:16px;font-weight:600;margin-bottom:12px}\n</style></head><body><div class=\"container\">\n<div class=\"header\"><h1>${d.branding.title}</h1><p class=\"sub\">${d.branding.subtitle}</p><p class=\"sub\" style=\"font-size:13px;opacity:.7\">${today}</p><div class=\"stats\">📰 ${d.enrichedArticles.length} articles • ${Object.keys(d.groupedArticles).length} categories</div></div>\n<div class=\"toc\"><h3>📋 In This Issue</h3><div class=\"toc-list\">`;\n\nfor (const [cat, data] of Object.entries(d.groupedArticles)) {\n  html += `<span class=\"toc-item\"><span>${data.icon}</span><span>${cat}</span><span class=\"toc-count\">${data.articles.length}</span></span>`;\n}\n\nhtml += `</div></div>\n<div class=\"top-story\"><div class=\"top-story-badge\">⭐ Top Story</div><h2><a href=\"${d.topStory.url}\">${d.topStory.title}</a></h2><p class=\"summary\">${d.topStory.summary}</p><div class=\"meta\">${d.topStory.categoryIcon} ${d.topStory.category} • ${d.topStory.source}</div></div>\n<div class=\"content\">`;\n\nfor (const [cat, data] of Object.entries(d.groupedArticles)) {\n  html += `<div class=\"cat-section\"><div class=\"cat-header\" style=\"border-color:${data.color}\"><span class=\"cat-icon\">${data.icon}</span><h2 class=\"cat-title\">${cat}</h2><span class=\"cat-count\">${data.articles.length}</span></div>`;\n  data.articles.forEach(a => {\n    const date = new Date(a.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });\n    html += `<div class=\"article\" style=\"border-color:${data.color}\"><h3><a href=\"${a.url}\">${a.title}</a></h3><p class=\"summary\">${a.summary}</p><div class=\"meta\"><span>${a.source}</span><span>${date}</span><a href=\"${a.url}\" class=\"read\">Read →</a></div></div>`;\n  });\n  html += `</div>`;\n}\n\nhtml += `</div><div class=\"footer\"><p class=\"brand\">${d.branding.footerText}</p><p>Your daily ${d.newsletter.industry} intelligence</p></div></div></body></html>`;\n\nreturn [{ json: { ...d, htmlContent: html, subject: `${d.branding.title} - ${today}` } }];"
+      },
+      "id": "format-email",
+      "name": "Format Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2860, -200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate Telegram message\nconst d = $input.first().json;\nconst today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });\nconst esc = t => t.replace(/[_*\\[\\]()~`>#+=|{}.!-]/g, '\\\\$&');\n\nlet msg = `*${esc(d.branding.title)}*\\n_${esc(d.branding.subtitle)} • ${esc(today)}_\\n━━━━━━━━━━━━━━━━━━━━\\n\\n`;\nmsg += `⭐ *TOP STORY*\\n${d.topStory.categoryIcon} [${esc(d.topStory.title.substring(0,60))}](${d.topStory.url})\\n_${esc(d.topStory.summary)}_\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n`;\n\nlet count = 0;\nfor (const [cat, data] of Object.entries(d.groupedArticles)) {\n  if (count >= 6) break;\n  msg += `${data.icon} *${esc(cat)}*\\n`;\n  data.articles.slice(0, 2).forEach(a => {\n    if (count >= 6) return;\n    msg += `  • [${esc(a.title.substring(0,50))}...](${a.url})\\n`;\n    count++;\n  });\n  msg += '\\n';\n}\n\nif (d.enrichedArticles.length > 6) msg += `📧 _\\\\+${d.enrichedArticles.length - 6} more in email_\\n`;\nmsg += `\\n━━━━━━━━━━━━━━━━━━━━\\n_${esc(d.client.companyName)}_`;\n\nreturn [{ json: { ...d, telegramMessage: msg } }];"
+      },
+      "id": "format-telegram",
+      "name": "Format Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2860, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Send to all enabled channels\nconst d = $input.first().json;\nconst results = { email: null, telegram: null, slack: null };\n\n// Return data for channel nodes\nreturn [{ json: { ...d, channelResults: results } }];"
+      },
+      "id": "prepare-delivery",
+      "name": "Prepare Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "email-enabled",
+            "leftValue": "={{ $json.channels.some(c => c.channel_type === 'email' && c.is_enabled) }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "equals" }
+          }],
+          "combinator": "and"
+        }
+      },
+      "id": "check-email",
+      "name": "Email Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3300, -100]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipients.map(r => r.email).join(', ') }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.htmlContent }}",
+        "options": { "appendAttribution": false }
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [3520, -100],
+      "credentials": { "smtp": { "id": "smtp-credentials", "name": "SMTP" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "telegram-enabled",
+            "leftValue": "={{ $json.channels.some(c => c.channel_type === 'telegram' && c.is_enabled) }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "equals" }
+          }],
+          "combinator": "and"
+        }
+      },
+      "id": "check-telegram",
+      "name": "Telegram Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3300, 100]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.channels.find(c => c.channel_type === 'telegram')?.config?.chat_id }}",
+        "text": "={{ $json.telegramMessage }}",
+        "additionalFields": { "parse_mode": "MarkdownV2" }
+      },
+      "id": "send-telegram",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3520, 100],
+      "credentials": { "telegramApi": { "id": "telegram-credentials", "name": "Telegram" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO delivery_logs (client_id, newsletter_id, trigger_type, status, articles_count, recipients_count, channels_used, execution_time_ms)\nVALUES (\n  '{{ $('Prepare Newsletter Data').first().json.client.id }}',\n  '{{ $('Prepare Newsletter Data').first().json.newsletter.id }}',\n  '{{ $('Prepare Newsletter Data').first().json.triggerType }}',\n  'success',\n  {{ $('Process Articles').first().json.articleCount }},\n  {{ $('Get Recipients').all().length }},\n  ARRAY['email', 'telegram'],\n  {{ Date.now() - $('Prepare Newsletter Data').first().json.startTime }}\n);\n\nSELECT increment_usage(\n  '{{ $('Prepare Newsletter Data').first().json.client.id }}',\n  1,\n  {{ $('Get Recipients').all().length }},\n  {{ $json.channels.some(c => c.channel_type === 'telegram') ? 1 : 0 }},\n  1000\n);",
+        "options": {}
+      },
+      "id": "log-delivery",
+      "name": "Log Delivery & Usage",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3740, 0],
+      "credentials": { "postgres": { "id": "supabase-db", "name": "Supabase PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return success response\nconst data = $('Prepare Newsletter Data').first().json;\nconst articleCount = $('Process Articles').first().json.articleCount;\nconst recipientCount = $('Get Recipients').all().length;\n\nreturn [{\n  json: {\n    success: true,\n    newsletter_id: data.newsletter.id,\n    newsletter_name: data.newsletter.name,\n    articles_sent: articleCount,\n    recipients: recipientCount,\n    channels: ['email', 'telegram'],\n    delivered_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3960, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// No articles found response\nreturn [{\n  json: {\n    success: true,\n    message: 'No articles found for today',\n    articles_sent: 0\n  }\n}];"
+      },
+      "id": "no-articles-response",
+      "name": "No Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 100]
+    }
+  ],
+  "connections": {
+    "Webhook: Send Newsletter": {
+      "main": [[{ "node": "Validate API Key", "type": "main", "index": 0 }]]
+    },
+    "Hourly Schedule Check": {
+      "main": [[{ "node": "Get Scheduled Newsletters", "type": "main", "index": 0 }]]
+    },
+    "Validate API Key": {
+      "main": [[{ "node": "Get Newsletter (API)", "type": "main", "index": 0 }]]
+    },
+    "Get Newsletter (API)": {
+      "main": [[{ "node": "Check Newsletter Found?", "type": "main", "index": 0 }]]
+    },
+    "Get Scheduled Newsletters": {
+      "main": [[{ "node": "Loop Newsletters", "type": "main", "index": 0 }]]
+    },
+    "Check Newsletter Found?": {
+      "main": [
+        [{ "node": "Prepare Newsletter Data", "type": "main", "index": 0 }],
+        [{ "node": "Error: Unauthorized", "type": "main", "index": 0 }]
+      ]
+    },
+    "Loop Newsletters": {
+      "main": [
+        [{ "node": "Prepare Newsletter Data", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Prepare Newsletter Data": {
+      "main": [[
+        { "node": "Get Sources", "type": "main", "index": 0 },
+        { "node": "Get Categories", "type": "main", "index": 0 },
+        { "node": "Get Channels", "type": "main", "index": 0 },
+        { "node": "Get Recipients", "type": "main", "index": 0 }
+      ]]
+    },
+    "Get Sources": {
+      "main": [[{ "node": "Merge Configuration", "type": "main", "index": 0 }]]
+    },
+    "Get Categories": {
+      "main": [[{ "node": "Merge Configuration", "type": "main", "index": 0 }]]
+    },
+    "Get Channels": {
+      "main": [[{ "node": "Merge Configuration", "type": "main", "index": 0 }]]
+    },
+    "Get Recipients": {
+      "main": [[{ "node": "Merge Configuration", "type": "main", "index": 0 }]]
+    },
+    "Merge Configuration": {
+      "main": [[
+        { "node": "Fetch NewsAPI", "type": "main", "index": 0 },
+        { "node": "Prepare RSS Feeds", "type": "main", "index": 0 }
+      ]]
+    },
+    "Fetch NewsAPI": {
+      "main": [[{ "node": "Process Articles", "type": "main", "index": 0 }]]
+    },
+    "Prepare RSS Feeds": {
+      "main": [[{ "node": "Fetch RSS", "type": "main", "index": 0 }]]
+    },
+    "Fetch RSS": {
+      "main": [[{ "node": "Process Articles", "type": "main", "index": 0 }]]
+    },
+    "Process Articles": {
+      "main": [[{ "node": "Has Articles?", "type": "main", "index": 0 }]]
+    },
+    "Has Articles?": {
+      "main": [
+        [{ "node": "AI Categorize", "type": "main", "index": 0 }],
+        [{ "node": "No Articles", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Categorize": {
+      "main": [[{ "node": "Enrich Articles", "type": "main", "index": 0 }]]
+    },
+    "Enrich Articles": {
+      "main": [[
+        { "node": "Format Email", "type": "main", "index": 0 },
+        { "node": "Format Telegram", "type": "main", "index": 0 }
+      ]]
+    },
+    "Format Email": {
+      "main": [[{ "node": "Prepare Delivery", "type": "main", "index": 0 }]]
+    },
+    "Format Telegram": {
+      "main": [[{ "node": "Prepare Delivery", "type": "main", "index": 0 }]]
+    },
+    "Prepare Delivery": {
+      "main": [[
+        { "node": "Check Email?", "type": "main", "index": 0 },
+        { "node": "Check Telegram?", "type": "main", "index": 0 }
+      ]]
+    },
+    "Check Email?": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Check Telegram?": {
+      "main": [
+        [{ "node": "Send Telegram", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Send Email": {
+      "main": [[{ "node": "Log Delivery & Usage", "type": "main", "index": 0 }]]
+    },
+    "Send Telegram": {
+      "main": [[{ "node": "Log Delivery & Usage", "type": "main", "index": 0 }]]
+    },
+    "Log Delivery & Usage": {
+      "main": [[{ "node": "Success Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [{ "name": "saas", "id": "1" }, { "name": "newsletter", "id": "2" }, { "name": "multi-tenant", "id": "3" }]
+}

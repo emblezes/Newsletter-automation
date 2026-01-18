@@ -1,0 +1,245 @@
+{
+  "database": {
+    "recommended": "Supabase",
+    "alternatives": ["Airtable", "PostgreSQL", "MongoDB", "PlanetScale"],
+    "connection": {
+      "supabase_url": "https://your-project.supabase.co",
+      "supabase_anon_key": "your-anon-key"
+    }
+  },
+  "tables": {
+    "clients": {
+      "description": "SaaS customer accounts",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "email": "text UNIQUE NOT NULL",
+        "company_name": "text NOT NULL",
+        "plan": "text DEFAULT 'free'",
+        "api_key": "text UNIQUE",
+        "created_at": "timestamp DEFAULT now()",
+        "newsletters_limit": "integer DEFAULT 1",
+        "emails_per_month": "integer DEFAULT 500",
+        "is_active": "boolean DEFAULT true"
+      },
+      "example": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "email": "user@company.com",
+        "company_name": "TechStartup Inc",
+        "plan": "pro",
+        "api_key": "nla_abc123xyz789",
+        "newsletters_limit": 5,
+        "emails_per_month": 5000,
+        "is_active": true
+      }
+    },
+    "newsletters": {
+      "description": "Newsletter configurations per client",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "client_id": "uuid REFERENCES clients(id)",
+        "name": "text NOT NULL",
+        "industry": "text",
+        "is_active": "boolean DEFAULT true",
+        "schedule_enabled": "boolean DEFAULT true",
+        "schedule_hour": "integer DEFAULT 7",
+        "schedule_minute": "integer DEFAULT 0",
+        "schedule_timezone": "text DEFAULT 'UTC'",
+        "schedule_days": "text[] DEFAULT '{1,2,3,4,5}'",
+        "created_at": "timestamp DEFAULT now()",
+        "updated_at": "timestamp DEFAULT now()"
+      },
+      "example": {
+        "id": "660e8400-e29b-41d4-a716-446655440001",
+        "client_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Daily Tech Digest",
+        "industry": "Technology",
+        "is_active": true,
+        "schedule_enabled": true,
+        "schedule_hour": 7,
+        "schedule_minute": 30,
+        "schedule_timezone": "Europe/Paris",
+        "schedule_days": ["1", "2", "3", "4", "5"]
+      }
+    },
+    "newsletter_branding": {
+      "description": "Visual branding per newsletter",
+      "schema": {
+        "newsletter_id": "uuid REFERENCES newsletters(id) PRIMARY KEY",
+        "title": "text NOT NULL",
+        "subtitle": "text",
+        "logo_url": "text",
+        "primary_color": "text DEFAULT '#667eea'",
+        "secondary_color": "text DEFAULT '#764ba2'",
+        "footer_text": "text",
+        "social_links": "jsonb"
+      },
+      "example": {
+        "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+        "title": "Daily Tech Digest",
+        "subtitle": "Your morning tech briefing",
+        "logo_url": "https://cdn.company.com/logo.png",
+        "primary_color": "#667eea",
+        "secondary_color": "#764ba2",
+        "footer_text": "Curated by TechStartup Inc",
+        "social_links": {
+          "twitter": "https://twitter.com/techstartup",
+          "linkedin": "https://linkedin.com/company/techstartup"
+        }
+      }
+    },
+    "newsletter_sources": {
+      "description": "News sources per newsletter",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "newsletter_id": "uuid REFERENCES newsletters(id)",
+        "source_type": "text NOT NULL",
+        "source_url": "text",
+        "keywords": "text[]",
+        "exclude_keywords": "text[]",
+        "is_active": "boolean DEFAULT true"
+      },
+      "examples": [
+        {
+          "id": "770e8400-e29b-41d4-a716-446655440001",
+          "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+          "source_type": "rss",
+          "source_url": "https://feeds.feedburner.com/TechCrunch/",
+          "keywords": null,
+          "exclude_keywords": ["sponsored"],
+          "is_active": true
+        },
+        {
+          "id": "770e8400-e29b-41d4-a716-446655440002",
+          "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+          "source_type": "newsapi",
+          "source_url": null,
+          "keywords": ["artificial intelligence", "machine learning", "startups"],
+          "exclude_keywords": ["sponsored", "advertisement"],
+          "is_active": true
+        }
+      ]
+    },
+    "newsletter_categories": {
+      "description": "Custom categories per newsletter",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "newsletter_id": "uuid REFERENCES newsletters(id)",
+        "name": "text NOT NULL",
+        "icon": "text",
+        "color": "text",
+        "keywords": "text[]",
+        "sort_order": "integer DEFAULT 0"
+      },
+      "examples": [
+        {
+          "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+          "name": "AI & Machine Learning",
+          "icon": "🤖",
+          "color": "#8B5CF6",
+          "keywords": ["ai", "artificial intelligence", "machine learning", "gpt", "llm"],
+          "sort_order": 1
+        },
+        {
+          "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+          "name": "Startups & Funding",
+          "icon": "🚀",
+          "color": "#F59E0B",
+          "keywords": ["startup", "funding", "venture", "series a", "ipo"],
+          "sort_order": 2
+        }
+      ]
+    },
+    "newsletter_recipients": {
+      "description": "Email recipients per newsletter",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "newsletter_id": "uuid REFERENCES newsletters(id)",
+        "email": "text NOT NULL",
+        "name": "text",
+        "is_active": "boolean DEFAULT true",
+        "subscribed_at": "timestamp DEFAULT now()",
+        "unsubscribed_at": "timestamp"
+      }
+    },
+    "newsletter_channels": {
+      "description": "Delivery channels per newsletter",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "newsletter_id": "uuid REFERENCES newsletters(id)",
+        "channel_type": "text NOT NULL",
+        "is_enabled": "boolean DEFAULT true",
+        "config": "jsonb"
+      },
+      "examples": [
+        {
+          "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+          "channel_type": "email",
+          "is_enabled": true,
+          "config": {
+            "from_name": "TechStartup Newsletter",
+            "from_email": "newsletter@techstartup.com",
+            "reply_to": "hello@techstartup.com"
+          }
+        },
+        {
+          "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+          "channel_type": "telegram",
+          "is_enabled": true,
+          "config": {
+            "chat_id": "-1001234567890",
+            "bot_token_ref": "client_telegram_bot"
+          }
+        },
+        {
+          "newsletter_id": "660e8400-e29b-41d4-a716-446655440001",
+          "channel_type": "slack",
+          "is_enabled": false,
+          "config": {
+            "webhook_url": "https://hooks.slack.com/services/..."
+          }
+        }
+      ]
+    },
+    "delivery_logs": {
+      "description": "Track all newsletter deliveries for billing & analytics",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "client_id": "uuid REFERENCES clients(id)",
+        "newsletter_id": "uuid REFERENCES newsletters(id)",
+        "delivered_at": "timestamp DEFAULT now()",
+        "trigger_type": "text",
+        "status": "text",
+        "articles_count": "integer",
+        "recipients_count": "integer",
+        "channels_used": "text[]",
+        "execution_time_ms": "integer",
+        "error_message": "text"
+      }
+    },
+    "usage_stats": {
+      "description": "Monthly usage for billing",
+      "schema": {
+        "id": "uuid PRIMARY KEY",
+        "client_id": "uuid REFERENCES clients(id)",
+        "month": "date NOT NULL",
+        "newsletters_sent": "integer DEFAULT 0",
+        "emails_sent": "integer DEFAULT 0",
+        "telegram_messages": "integer DEFAULT 0",
+        "ai_tokens_used": "integer DEFAULT 0"
+      }
+    }
+  },
+  "supabase_sql": "-- See database/schema.sql for full SQL schema",
+  "indexes": [
+    "CREATE INDEX idx_newsletters_client ON newsletters(client_id);",
+    "CREATE INDEX idx_newsletters_schedule ON newsletters(schedule_hour, schedule_minute) WHERE is_active = true AND schedule_enabled = true;",
+    "CREATE INDEX idx_delivery_logs_client ON delivery_logs(client_id, delivered_at);",
+    "CREATE INDEX idx_usage_stats_client_month ON usage_stats(client_id, month);"
+  ],
+  "rls_policies": {
+    "description": "Row Level Security for multi-tenant isolation",
+    "clients": "Users can only see their own client record",
+    "newsletters": "Users can only see newsletters belonging to their client",
+    "all_tables": "All tables should have RLS policies based on client_id"
+  }
+}
